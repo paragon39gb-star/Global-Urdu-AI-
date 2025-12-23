@@ -2,14 +2,13 @@
 import { GoogleGenAI, GenerateContentResponse, Chat, Modality, LiveServerMessage } from "@google/genai";
 import { SYSTEM_PROMPT } from "../constants";
 
-// Helper to get fresh AI instance (required for Pro models to use latest selected key)
-const getAI = () => new GoogleGenAI({ apiKey: process.env.API_KEY });
-
 class UrduAIService {
   private chatInstance: Chat | null = null;
+  private currentModel: string | null = null;
   private imageModel = 'gemini-2.5-flash-image';
 
   private initializeChat(model: string, history: any[] = [], customInstructions?: string) {
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     const geminiHistory = history.map(msg => ({
       role: msg.role === 'user' ? 'user' : 'model',
       parts: [
@@ -23,14 +22,16 @@ class UrduAIService {
       ]
     }));
 
-    this.chatInstance = getAI().chats.create({
+    this.currentModel = model;
+    this.chatInstance = ai.chats.create({
       model: model,
       history: geminiHistory,
       config: {
         systemInstruction: (customInstructions ? `${SYSTEM_PROMPT}\n\nUSER CUSTOM INSTRUCTIONS:\n${customInstructions}` : SYSTEM_PROMPT),
-        temperature: 0.7,
-        topP: 0.95,
-        tools: [{ googleSearch: {} }]
+        temperature: 0.35,
+        topP: 0.9,
+        tools: [{ googleSearch: {} }],
+        thinkingConfig: model.includes('pro') ? { thinkingBudget: 8000 } : undefined
       }
     });
   }
@@ -43,50 +44,40 @@ class UrduAIService {
     customInstructions?: string,
     onChunk?: (text: string, sources?: any[]) => void
   ) {
+    if (this.currentModel !== model) {
+      this.resetChat();
+    }
+
     if (!this.chatInstance) {
       this.initializeChat(model, history.slice(0, -1), customInstructions);
     }
 
     try {
       const parts: any[] = [{ text: message }];
-      
       attachments.forEach(att => {
         parts.push({
-          inlineData: {
-            data: att.data.split(',')[1],
-            mimeType: att.mimeType
-          }
+          inlineData: { data: att.data.split(',')[1], mimeType: att.mimeType }
         });
       });
 
-      // Corrected parameter structure for sendMessageStream
-      const responseStream = await this.chatInstance!.sendMessageStream({ 
-        message: { parts: parts } 
-      });
-      
+      const responseStream = await this.chatInstance!.sendMessageStream({ message: { parts: parts } });
       let fullText = "";
       let allSources: any[] = [];
       
       for await (const chunk of responseStream) {
-        const text = (chunk as GenerateContentResponse).text;
-        
-        // Improve grounding source extraction
-        const candidates = (chunk as any).candidates;
-        if (candidates?.[0]?.groundingMetadata?.groundingChunks) {
-          const chunks = candidates[0].groundingMetadata.groundingChunks;
+        const text = chunk.text;
+        if (chunk.candidates?.[0]?.groundingMetadata?.groundingChunks) {
+          const chunks = chunk.candidates[0].groundingMetadata.groundingChunks;
           const normalized = chunks
             .filter((c: any) => c.web?.uri)
-            .map((c: any) => ({
-              title: c.web.title || 'Source',
-              uri: c.web.uri
-            }));
+            .map((c: any) => ({ title: c.web.title || 'ذریعہ', uri: c.web.uri }));
           
-          // Use a Map to keep unique sources by URI
-          const sourceMap = new Map();
-          [...allSources, ...normalized].forEach(s => sourceMap.set(s.uri, s));
-          allSources = Array.from(sourceMap.values());
+          if (normalized.length > 0) {
+            const sourceMap = new Map();
+            [...allSources, ...normalized].forEach(s => sourceMap.set(s.uri, s));
+            allSources = Array.from(sourceMap.values());
+          }
         }
-
         if (text) {
           fullText += text;
           onChunk?.(fullText, allSources.length > 0 ? allSources : undefined);
@@ -94,93 +85,53 @@ class UrduAIService {
       }
       return fullText;
     } catch (error) {
-      console.error("Gemini Stream Error:", error);
+      console.error("UrduAI Stream Error:", error);
       this.resetChat();
       throw error;
     }
   }
 
-  async generateImage(prompt: string, isPro: boolean = false) {
-    // Pro models require checking for selected API key
-    if (isPro && window.aistudio) {
-      const hasKey = await window.aistudio.hasSelectedApiKey();
-      if (!hasKey) {
-        await window.aistudio.openSelectKey();
-        // Proceeding after dialog as per race condition guidelines
-      }
-    }
-
-    const modelToUse = isPro ? 'gemini-3-pro-image-preview' : this.imageModel;
-    
+  async textToSpeech(text: string, voiceName: string) {
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     try {
-      const response = await getAI().models.generateContent({
-        model: modelToUse,
-        contents: { parts: [{ text: `High quality artistic image: ${prompt}. Professional Urdu style if applicable.` }] },
-        config: { 
-          imageConfig: { 
-            aspectRatio: "1:1",
-            imageSize: isPro ? "1K" : undefined
-          } 
-        }
+      const response = await ai.models.generateContent({
+        model: "gemini-2.5-flash-preview-tts",
+        contents: [{ parts: [{ text: text }] }],
+        config: {
+          responseModalities: [Modality.AUDIO],
+          speechConfig: {
+            voiceConfig: { prebuiltVoiceConfig: { voiceName: voiceName } },
+          },
+        },
       });
-
-      if (response.candidates?.[0]?.content?.parts) {
-        for (const part of response.candidates[0].content.parts) {
-          if (part.inlineData) {
-            return `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`;
-          }
-        }
-      }
+      return response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
+    } catch (error) {
       return null;
-    } catch (error: any) {
-      if (error.message?.includes("Requested entity was not found") && window.aistudio) {
-        await window.aistudio.openSelectKey();
-      }
-      console.error("Image Generation Error:", error);
-      throw error;
     }
   }
 
-  async connectLive(callbacks: {
-    onAudio: (data: string) => void,
-    onTranscription: (text: string, isUser: boolean) => void,
-    onInterrupted: () => void,
-    onClose: () => void
-  }) {
-    return getAI().live.connect({
+  async connectLive(options: any) {
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    const { callbacks, voiceName } = options;
+    return ai.live.connect({
       model: 'gemini-2.5-flash-native-audio-preview-09-2025',
       callbacks: {
-        onopen: () => console.log("Voice Link Established"),
+        onopen: () => console.log("Live Node Connected"),
         onmessage: async (message: LiveServerMessage) => {
-          if (message.serverContent?.modelTurn?.parts?.[0]?.inlineData?.data) {
-            callbacks.onAudio(message.serverContent.modelTurn.parts[0].inlineData.data);
-          }
-          if (message.serverContent?.outputTranscription) {
-            callbacks.onTranscription(message.serverContent.outputTranscription.text, false);
-          }
-          if (message.serverContent?.inputTranscription) {
-            callbacks.onTranscription(message.serverContent.inputTranscription.text, true);
-          }
-          if (message.serverContent?.interrupted) {
-            callbacks.onInterrupted();
-          }
+          const part = message.serverContent?.modelTurn?.parts?.[0];
+          if (part?.inlineData?.data) callbacks.onAudio(part.inlineData.data);
+          if (message.serverContent?.outputTranscription) callbacks.onTranscription(message.serverContent.outputTranscription.text, false);
+          if (message.serverContent?.inputTranscription) callbacks.onTranscription(message.serverContent.inputTranscription.text, true);
+          if (message.serverContent?.turnComplete) callbacks.onTurnComplete();
+          if (message.serverContent?.interrupted) callbacks.onInterrupted();
         },
-        onerror: (e) => {
-          console.error("Live Link Error", e);
-          callbacks.onClose();
-        },
+        onerror: () => callbacks.onClose(),
         onclose: () => callbacks.onClose()
       },
       config: {
         responseModalities: [Modality.AUDIO],
-        systemInstruction: SYSTEM_PROMPT + "\n\nVOICE MODE INSTRUCTIONS:\n- You are GLOBAL URDU AI created by QARI KHALID MAHMOOD.\n- Speak with a high-quality, clear, and professional Urdu voice.\n- Be concise and articulate.",
-        speechConfig: { 
-          voiceConfig: { 
-            prebuiltVoiceConfig: { 
-              voiceName: 'Kore'
-            } 
-          } 
-        },
+        systemInstruction: SYSTEM_PROMPT,
+        speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: voiceName } } },
         inputAudioTranscription: {},
         outputAudioTranscription: {}
       }
@@ -189,6 +140,7 @@ class UrduAIService {
 
   resetChat() {
     this.chatInstance = null;
+    this.currentModel = null;
   }
 }
 

@@ -1,6 +1,6 @@
 
-import React, { useState, useRef, useEffect } from 'react';
-import { Sparkles, ArrowUp, Image as ImageIcon, Mic, XCircle, Paperclip, X, ChevronDown, Info, Menu, Search } from 'lucide-react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { Sparkles, ArrowUp, Image as ImageIcon, Mic, XCircle, Paperclip, X, ChevronDown, Info, Menu, Search, Newspaper, Zap, MicOff, Loader2, Calendar, RefreshCcw } from 'lucide-react';
 import { MessageBubble } from './MessageBubble';
 import { ChatSession, Attachment, UserSettings } from '../types';
 import { SUGGESTIONS } from '../constants';
@@ -8,6 +8,8 @@ import { SUGGESTIONS } from '../constants';
 interface ChatAreaProps {
   session: ChatSession | null;
   onSendMessage: (text: string, attachments: Attachment[]) => void;
+  onFetchNews: () => void;
+  onFetchAIUpdates: () => void;
   isImageMode: boolean;
   setIsImageMode: (val: boolean) => void;
   onStartVoice: () => void;
@@ -16,11 +18,14 @@ interface ChatAreaProps {
   onModelChange: (model: string) => void;
   settings: UserSettings;
   onToggleSidebar: () => void;
+  onRefreshContext: () => void;
 }
 
 export const ChatArea: React.FC<ChatAreaProps> = ({
   session,
   onSendMessage,
+  onFetchNews,
+  onFetchAIUpdates,
   isImageMode,
   setIsImageMode,
   onStartVoice,
@@ -28,48 +33,70 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
   selectedModel,
   onModelChange,
   settings,
-  onToggleSidebar
+  onToggleSidebar,
+  onRefreshContext
 }) => {
   const [input, setInput] = useState('');
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [showModelMenu, setShowModelMenu] = useState(false);
+  const [isListeningInput, setIsListeningInput] = useState(false);
+  const [currentDateInfo, setCurrentDateInfo] = useState({ day: '', fullDate: '' });
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const recognitionRef = useRef<any>(null);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [session?.messages]);
 
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files) return;
-    const newAttachments: Attachment[] = [];
-    for (let i = 0; i < files.length; i++) {
-      const file = files[i];
-      const reader = new FileReader();
-      const promise = new Promise<Attachment>((resolve) => {
-        reader.onload = (event) => {
-          resolve({
-            data: event.target?.result as string,
-            mimeType: file.type,
-            name: file.name,
-            previewUrl: file.type.startsWith('image/') ? (event.target?.result as string) : undefined
-          });
-        };
-      });
-      reader.readAsDataURL(file);
-      newAttachments.push(await promise);
+  useEffect(() => {
+    const now = new Date();
+    const day = now.toLocaleDateString('ur-PK', { weekday: 'long' });
+    const fullDate = now.toLocaleDateString('ur-u-nu-latn', { 
+      day: 'numeric', 
+      month: 'long', 
+      year: 'numeric' 
+    });
+    setCurrentDateInfo({ day, fullDate });
+
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (SpeechRecognition) {
+      recognitionRef.current = new SpeechRecognition();
+      recognitionRef.current.continuous = true;
+      recognitionRef.current.interimResults = true;
+      recognitionRef.current.lang = 'ur-PK';
+      recognitionRef.current.onresult = (event: any) => {
+        let finalTranscript = '';
+        for (let i = event.resultIndex; i < event.results.length; ++i) {
+          if (event.results[i].isFinal) finalTranscript += event.results[i][0].transcript;
+        }
+        if (finalTranscript) setInput(prev => prev + (prev ? ' ' : '') + finalTranscript);
+      };
+      recognitionRef.current.onend = () => setIsListeningInput(false);
+      recognitionRef.current.onerror = () => setIsListeningInput(false);
     }
-    setAttachments([...attachments, ...newAttachments]);
+  }, []);
+
+  const handleRefresh = () => {
+    setIsRefreshing(true);
+    onRefreshContext();
+    setTimeout(() => setIsRefreshing(false), 800);
   };
 
-  const removeAttachment = (index: number) => {
-    setAttachments(prev => prev.filter((_, i) => i !== index));
+  const toggleInputListening = () => {
+    if (!recognitionRef.current) return alert("براؤزر سپورٹ نہیں کرتا۔");
+    if (isListeningInput) {
+      recognitionRef.current.stop();
+    } else {
+      try { recognitionRef.current.start(); setIsListeningInput(true); } catch (e) {}
+    }
   };
 
   const handleSubmit = (e?: React.FormEvent) => {
     e?.preventDefault();
+    if (isListeningInput) recognitionRef.current.stop();
     if ((input.trim() || attachments.length > 0) && !isLoading) {
       onSendMessage(input, attachments);
       setInput('');
@@ -79,141 +106,173 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
+    if (e.key === 'Enter' && !e.shiftKey && window.innerWidth > 768) {
       e.preventDefault();
       handleSubmit();
     }
   };
 
   return (
-    <div className="flex-1 flex flex-col h-full relative p-2 md:p-4 overflow-hidden">
-      <div className="flex-1 flex flex-col glass-panel rounded-[2rem] md:rounded-[2.5rem] overflow-hidden shadow-2xl relative">
-        <div className="absolute inset-0 bg-gradient-to-br from-indigo-900/5 to-transparent pointer-events-none" />
-
-        <header className="h-14 md:h-16 flex items-center justify-between px-4 md:px-6 border-b border-white/5 bg-white/5 backdrop-blur-md sticky top-0 z-20 shrink-0">
-          <div className="flex items-center gap-2 md:gap-3">
-            <button onClick={onToggleSidebar} className="lg:hidden p-2 text-white hover:bg-white/10 rounded-xl transition-all">
-              <Menu size={18} />
+    <div className="flex-1 flex flex-col h-full relative overflow-hidden bg-[#020617]">
+      <div className="flex-1 flex flex-col md:glass-panel md:m-3 md:rounded-[2.5rem] overflow-hidden shadow-2xl relative border-0 md:border border-white/10">
+        
+        {/* Responsive Header */}
+        <header className="h-14 md:h-20 flex items-center justify-between px-3 md:px-10 border-b border-sky-400/20 sticky top-0 z-20 shrink-0 bg-[#020617]/90 backdrop-blur-3xl">
+          <div className="flex items-center gap-2 md:gap-5 shrink-0">
+            <button onClick={onToggleSidebar} className="lg:hidden p-2 text-white hover:bg-white/10 rounded-xl transition-all cursor-pointer">
+              <Menu size={22} />
             </button>
-            <div className="relative">
-              <button onClick={() => setShowModelMenu(!showModelMenu)} className="flex items-center gap-1.5 md:gap-2 px-2 md:px-3 py-1 hover:bg-white/10 rounded-2xl transition-all text-white group">
-                <div className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse" />
-                <span className="font-bold urdu-text text-xs md:text-base tracking-wide">Chat GRC</span>
-                <ChevronDown size={12} className={`text-indigo-400 transition-transform ${showModelMenu ? 'rotate-180' : ''}`} />
-              </button>
-              {showModelMenu && (
-                <div className="absolute top-full left-0 mt-2 w-56 md:w-64 glass-panel border-white/10 rounded-2xl shadow-2xl py-2 z-50 animate-in fade-in zoom-in-95">
-                  <button onClick={() => { onModelChange('gemini-3-pro-preview'); setShowModelMenu(false); }} className={`w-full text-right px-4 py-3 hover:bg-white/5 flex flex-col items-end group ${selectedModel.includes('pro') ? 'bg-indigo-500/10' : ''}`}>
-                    <span className="text-xs md:text-sm font-bold urdu-text text-white">تحقیق پرو (Pro-3)</span>
-                    <span className="text-[9px] text-slate-500">پیچیدہ کام کے لیے</span>
-                  </button>
-                  <button onClick={() => { onModelChange('gemini-3-flash-preview'); setShowModelMenu(false); }} className={`w-full text-right px-4 py-3 hover:bg-white/5 flex flex-col items-end group ${selectedModel.includes('flash') ? 'bg-indigo-500/10' : ''}`}>
-                    <span className="text-xs md:text-sm font-bold urdu-text text-white">فلیش (Flash-3)</span>
-                    <span className="text-[9px] text-slate-500">تیز جوابات کے لیے</span>
-                  </button>
-                </div>
-              )}
+            
+            <div className="flex items-center gap-1 md:gap-4">
+              <div className="relative shrink-0">
+                <button onClick={() => setShowModelMenu(!showModelMenu)} className="flex flex-col items-center px-2 md:px-6 py-1 hover:bg-white/5 rounded-2xl transition-all text-white group shrink-0 cursor-pointer">
+                  <div className="flex items-center gap-2 md:gap-3">
+                    <div className="w-2 h-2 md:w-3 md:h-3 rounded-full bg-sky-400 shrink-0 animate-pulse shadow-[0_0_12px_rgba(56,189,248,0.9)]" />
+                    <span className="font-black urdu-text text-sm md:text-2xl tracking-tighter whitespace-nowrap text-white">Chat GRC</span>
+                    <ChevronDown size={14} className={`text-sky-300 transition-transform ${showModelMenu ? 'rotate-180' : ''}`} />
+                  </div>
+                </button>
+                
+                {showModelMenu && (
+                  <div className="absolute top-full left-0 mt-4 w-60 md:w-80 glass-panel border-white/20 rounded-[2rem] shadow-2xl py-3 z-50 bg-[#0f172a] animate-in fade-in zoom-in-95">
+                    <button onClick={() => { onModelChange('gemini-3-pro-preview'); setShowModelMenu(false); }} className={`w-full text-right px-5 py-4 hover:bg-sky-500/10 flex flex-col items-end border-b border-white/5 cursor-pointer transition-colors ${selectedModel.includes('pro') ? 'bg-sky-500/20' : ''}`}>
+                      <span className="text-base md:text-lg font-bold urdu-text text-white">Chat GRC Pro (Turbo)</span>
+                      <span className="text-[10px] text-sky-400 font-black tracking-widest uppercase mt-1">Deep Intelligence</span>
+                    </button>
+                    <button onClick={() => { onModelChange('gemini-3-flash-preview'); setShowModelMenu(false); }} className={`w-full text-right px-5 py-4 hover:bg-sky-500/10 flex flex-col items-end cursor-pointer transition-colors ${selectedModel.includes('flash') ? 'bg-sky-500/20' : ''}`}>
+                      <span className="text-base md:text-lg font-bold urdu-text text-white">Chat GRC Lite (Flash)</span>
+                      <span className="text-[10px] text-sky-400/60 font-black tracking-widest uppercase mt-1">Instant Results</span>
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-             <div className="hidden sm:flex flex-col items-end border-r border-white/10 pr-3">
-               <span className="text-[7px] md:text-[8px] text-indigo-400 font-bold uppercase tracking-[0.2em]">Global Research Centre</span>
-               <span className="text-[8px] md:text-[9px] text-slate-300 font-bold urdu-text">قاری خالد محمود</span>
-             </div>
-             <button onClick={onStartVoice} className="flex items-center gap-1.5 px-3 py-1.5 md:py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl transition-all active:scale-95 shadow-xl border border-indigo-400/20">
-                <span className="hidden xs:inline urdu-text text-xs md:text-sm font-bold">براہِ راست گفتگو</span>
-                <Mic size={14} className="md:w-[18px]" />
+          
+          <div className="flex items-center gap-1.5 md:gap-4">
+             <button 
+                onClick={handleRefresh} 
+                className={`p-2 md:p-3 text-sky-400 hover:bg-sky-500/10 rounded-xl transition-all active:scale-90 cursor-pointer ${isRefreshing ? 'animate-spin' : ''}`}
+                title="ریفریش"
+             >
+                <RefreshCcw size={18} className="md:w-5 md:h-5" />
+             </button>
+
+             <button 
+                onClick={onFetchNews} 
+                disabled={isLoading}
+                className="flex items-center gap-1 md:gap-2 px-2 md:px-5 py-1.5 md:py-3 bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-400 rounded-lg md:rounded-xl transition-all active:scale-95 border border-emerald-500/30 disabled:opacity-50 cursor-pointer"
+             >
+                <span className="urdu-text text-[10px] md:text-base font-bold">خبریں</span>
+                <Newspaper size={14} className="md:w-4 md:h-4" />
+             </button>
+             
+             <button 
+                onClick={onFetchAIUpdates} 
+                disabled={isLoading}
+                className="hidden sm:flex items-center gap-2 px-5 py-3 bg-violet-600/20 hover:bg-violet-600/30 text-violet-300 rounded-xl transition-all active:scale-95 border border-violet-500/30 disabled:opacity-50 cursor-pointer"
+             >
+                <span className="urdu-text text-base font-bold">AI اپڈیٹس</span>
+                <Zap size={16} />
+             </button>
+
+             <button 
+                onClick={onStartVoice} 
+                className="p-2 md:px-5 md:py-3 bg-sky-600 hover:bg-sky-500 text-white rounded-lg md:rounded-xl transition-all active:scale-90 shadow-2xl border border-sky-400/20 cursor-pointer"
+             >
+                <Mic size={18} className="md:w-5 md:h-5" />
              </button>
           </div>
         </header>
 
-        <div className="flex-1 overflow-y-auto no-scrollbar scroll-smooth">
+        {/* Message View Area */}
+        <div className="flex-1 overflow-y-auto no-scrollbar scroll-smooth p-3 md:p-6 bg-black/5">
           {!session || session.messages.length === 0 ? (
-            <div className="min-h-full flex flex-col items-center justify-start pt-6 md:pt-12 pb-4 px-4 max-w-4xl mx-auto space-y-6 md:space-y-10">
-              {/* Top Launch Identity Section */}
-              <div className="text-center space-y-4 md:space-y-6 shrink-0 w-full animate-in fade-in slide-in-from-top-4 duration-700">
-                <div className="relative group inline-block">
-                  <div className="absolute -inset-4 bg-indigo-500/10 rounded-full blur-2xl opacity-50 group-hover:opacity-100 transition-opacity" />
-                  <div className="w-14 h-14 md:w-24 md:h-24 glass-panel rounded-2xl md:rounded-[2.5rem] flex items-center justify-center mx-auto shadow-2xl border-indigo-500/20 relative z-10">
-                     <Sparkles size={28} className="text-indigo-400 md:w-12 md:h-12 animate-pulse" />
-                  </div>
-                </div>
-                
-                <h2 className="text-4xl md:text-7xl font-bold urdu-text bg-clip-text text-transparent bg-gradient-to-b from-white to-indigo-400 leading-tight">آپ کی کیا تحقیق کروں؟</h2>
-                
-                <div className="flex flex-col items-center gap-3">
-                  <div className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-500/5 rounded-full border border-indigo-500/10 backdrop-blur-sm">
-                    <Search size={14} className="text-indigo-400"/>
-                    <span className="text-[9px] md:text-xs text-slate-300 font-bold tracking-[0.25em] uppercase">Global Research Centre</span>
-                  </div>
-                  
-                  <div className="flex items-center gap-3 text-indigo-400 urdu-text font-bold text-lg md:text-3xl px-6 py-2 rounded-2xl bg-white/5 border border-white/5">
-                    <Info size={16} className="md:w-6 md:h-6 text-indigo-500 shrink-0" />
-                    <span>قاری خالد محمود گولڈ میڈلسٹ</span>
-                  </div>
+            <div className="min-h-full flex flex-col items-center justify-center space-y-8 md:space-y-12 animate-in fade-in duration-700">
+              
+              <div className="flex items-center gap-3 px-5 py-2 bg-sky-500/10 rounded-full border border-sky-400/20 backdrop-blur-md">
+                <Calendar size={14} className="text-sky-400" />
+                <div className="urdu-text text-xs md:text-lg font-bold text-sky-100">
+                  <span>{currentDateInfo.day}</span> | <span>{currentDateInfo.fullDate}</span>
                 </div>
               </div>
-              
-              {/* Quick Suggestions - Compact for Screen Fit */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-5 w-full px-2 animate-in fade-in slide-in-from-bottom-4 duration-1000 delay-200">
+
+              <div className="text-center space-y-4 md:space-y-8">
+                <div className="w-20 h-20 md:w-32 md:h-32 glass-panel rounded-[2rem] md:rounded-[3rem] flex items-center justify-center mx-auto shadow-2xl border-sky-400/30">
+                   <Sparkles size={40} className="text-sky-300 animate-pulse" />
+                </div>
+                <h2 className="text-3xl md:text-6xl font-black urdu-text text-white tracking-tight">تحقیق شروع کریں</h2>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-5 w-full max-w-4xl px-2">
                 {SUGGESTIONS.map((s, idx) => (
-                  <button key={idx} onClick={() => onSendMessage(s.ur, [])} className="glass-card p-4 md:p-7 text-right rounded-[1.5rem] md:rounded-[2.5rem] group relative overflow-hidden flex flex-col justify-center border border-white/5 hover:border-indigo-500/30">
-                    <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                    <div className={`font-bold urdu-text text-white leading-snug transition-all group-hover:text-indigo-400 group-hover:translate-x-1 ${settings.fontSize === 'large' ? 'text-lg md:text-2xl' : 'text-base md:text-xl'}`} dir="rtl">{s.ur}</div>
-                    <div className="flex text-[8px] md:text-[10px] text-slate-500 uppercase tracking-widest font-bold opacity-40 items-center justify-end gap-1 mt-2 group-hover:opacity-100">
-                       {s.en} <ArrowUp size={10} className="rotate-45 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
-                    </div>
+                  <button key={idx} onClick={() => onSendMessage(s.ur, [])} className="glass-card p-5 md:p-8 text-right rounded-2xl md:rounded-[2.5rem] border border-white/5 hover:border-sky-400/40 transition-all hover:bg-sky-500/10 active:scale-[0.98] group flex flex-col items-end shadow-xl cursor-pointer">
+                    <div className="font-bold urdu-text text-white text-sm md:text-xl leading-relaxed" dir="rtl">{s.ur}</div>
+                    <div className="text-[9px] md:text-[11px] text-sky-400/50 uppercase font-black mt-2 tracking-widest">{s.en}</div>
                   </button>
                 ))}
               </div>
             </div>
           ) : (
-            <div className="w-full max-w-4xl mx-auto py-6">
+            <div className="w-full max-w-5xl mx-auto space-y-4">
               {session.messages.map((msg) => (
                 <MessageBubble key={msg.id} message={msg} settings={settings} />
               ))}
-              <div ref={messagesEndRef} />
+              {isLoading && session.messages[session.messages.length-1]?.role === 'user' && (
+                <div className="flex justify-start px-4 md:px-12 py-4">
+                  <div className="glass-panel px-5 py-3 rounded-2xl border-sky-500/20 bg-sky-950/30">
+                    <div className="flex gap-1.5 items-center">
+                      <div className="w-2 h-2 bg-sky-400 rounded-full animate-bounce" style={{animationDelay: '0ms'}} />
+                      <div className="w-2 h-2 bg-sky-400 rounded-full animate-bounce" style={{animationDelay: '150ms'}} />
+                      <div className="w-2 h-2 bg-sky-400 rounded-full animate-bounce" style={{animationDelay: '300ms'}} />
+                    </div>
+                  </div>
+                </div>
+              )}
+              <div ref={messagesEndRef} className="h-6" />
             </div>
           )}
         </div>
 
-        <div className="p-3 md:p-6 pt-1 shrink-0 bg-gradient-to-t from-slate-900/80 to-transparent">
-          <form onSubmit={handleSubmit} className="max-w-4xl mx-auto relative group">
-            {attachments.length > 0 && (
-              <div className="flex flex-wrap gap-2 mb-3 px-2">
-                {attachments.map((att, idx) => (
-                  <div key={idx} className="relative w-12 h-12 rounded-xl overflow-hidden glass-panel border-white/10 group/att shadow-xl">
-                    {att.previewUrl ? <img src={att.previewUrl} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-[8px] text-indigo-400 font-bold">DOC</div>}
-                    <button onClick={() => removeAttachment(idx)} className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-1 shadow-lg hover:scale-110 transition-transform"><X size={8} /></button>
-                  </div>
-                ))}
+        {/* Improved Input Footer */}
+        <footer className="p-3 md:p-8 bg-[#020617]/95 backdrop-blur-3xl border-t border-white/10 shrink-0">
+          <form onSubmit={handleSubmit} className="max-w-4xl mx-auto relative">
+            <div className="relative flex items-end w-full glass-panel rounded-2xl md:rounded-[2.5rem] p-2 md:p-2.5 transition-all border-white/20 focus-within:border-sky-500/50 shadow-2xl bg-black/40">
+              <div className="flex items-center gap-0.5 pl-1 md:pl-3">
+                <button type="button" onClick={() => fileInputRef.current?.click()} className="p-2.5 md:p-4 text-sky-400/60 hover:text-sky-300 transition-all active:scale-90 cursor-pointer"><Paperclip size={20} /></button>
+                <button type="button" onClick={toggleInputListening} className={`p-2.5 md:p-4 transition-all active:scale-90 cursor-pointer ${isListeningInput ? 'text-red-500 animate-pulse' : 'text-sky-400/60 hover:text-sky-300'}`}><Mic size={20} /></button>
               </div>
-            )}
-            <div className={`relative flex items-end w-full glass-panel rounded-2xl md:rounded-[2.5rem] p-2 md:p-3.5 transition-all duration-300 shadow-2xl border-white/10 ${isImageMode ? 'ring-2 ring-indigo-500/50 bg-indigo-900/30' : 'ring-1 ring-white/5 focus-within:ring-indigo-500/40 focus-within:bg-white/5'}`}>
-              <input type="file" multiple ref={fileInputRef} onChange={handleFileChange} className="hidden" />
-              <div className="flex items-center px-1">
-                <button type="button" onClick={() => fileInputRef.current?.click()} className="p-2 md:p-3 text-slate-400 hover:text-indigo-400 transition-all active:scale-90" title="منسلک کریں"><Paperclip size={20} className="md:w-6 md:h-6" /></button>
-                <button type="button" onClick={() => setIsImageMode(!isImageMode)} className={`p-2 md:p-3 transition-all active:scale-90 ${isImageMode ? 'text-indigo-400' : 'text-slate-400 hover:text-white'}`} title="تصویر تیار کریں">{isImageMode ? <XCircle size={20} className="md:w-6 md:h-6" /> : <ImageIcon size={20} className="md:w-6 md:h-6" />}</button>
-              </div>
+              <input type="file" multiple ref={fileInputRef} className="hidden" />
               <textarea
                 ref={textareaRef}
                 rows={1}
                 value={input}
-                onChange={(e) => { setInput(e.target.value); if (textareaRef.current) { textareaRef.current.style.height = 'auto'; textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 150)}px`; } }}
+                onChange={(e) => { 
+                  setInput(e.target.value); 
+                  e.target.style.height = 'auto'; 
+                  e.target.style.height = `${Math.min(e.target.scrollHeight, 200)}px`; 
+                }}
                 onKeyDown={handleKeyDown}
-                placeholder={isImageMode ? "جس کی تصویر چاہیے اس کا نام لکھیں..." : "تحقیق کے لیے یہاں لکھیں..."}
-                className={`w-full bg-transparent border-none focus:ring-0 text-white px-3 py-2 md:py-3.5 resize-none no-scrollbar urdu-text text-right placeholder:text-slate-500 leading-relaxed ${settings.fontSize === 'large' ? 'text-lg md:text-2xl' : 'text-base md:text-xl'}`}
+                placeholder="تحقیق شروع کریں..."
+                className="w-full bg-transparent border-none focus:ring-0 text-white px-2 md:px-4 py-3 md:py-5 resize-none no-scrollbar urdu-text text-right text-base md:text-2xl placeholder:text-sky-100/10 leading-relaxed font-semibold"
                 dir="auto"
               />
-              <button type="submit" disabled={(!input.trim() && attachments.length === 0) || isLoading} className={`p-3 md:p-4 rounded-xl md:rounded-2xl transition-all mb-0.5 ml-1 md:ml-3 flex items-center justify-center ${input.trim() || attachments.length > 0 ? (isImageMode ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-900/40' : 'bg-white text-slate-900 shadow-xl') : 'text-slate-700'} active:scale-90`}>
-                <ArrowUp size={20} className="md:w-6 md:h-6" strokeWidth={3} />
+              <button 
+                type="submit" 
+                disabled={(!input.trim() && attachments.length === 0) || isLoading} 
+                className={`p-3 md:p-5 rounded-xl md:rounded-2xl transition-all ml-2 flex items-center justify-center shadow-xl cursor-pointer ${input.trim() || attachments.length > 0 ? 'bg-sky-600 text-white' : 'bg-white/5 text-sky-900/40'} disabled:opacity-50 active:scale-90`}
+              >
+                {isLoading ? <Loader2 size={24} className="animate-spin" /> : <ArrowUp size={24} strokeWidth={3} />}
               </button>
             </div>
-            <div className="mt-3 flex flex-col items-center gap-0.5 opacity-30 group-hover:opacity-60 transition-opacity pointer-events-none">
-              <p className="text-[7px] md:text-[10px] text-center text-indigo-400 font-bold uppercase tracking-[0.4em]">Global Research Centre • Qari Khalid Mahmood Gold medalist</p>
-            </div>
           </form>
-        </div>
+          
+          <div className="mt-4 text-center">
+             <p className="text-[8px] md:text-[11px] urdu-text text-slate-500 font-bold uppercase tracking-[0.2em]">
+               Chat GRC - از <span className="text-yellow-400 font-black">قاری خالد محمود</span> (گولڈ میڈلسٹ)
+             </p>
+          </div>
+        </footer>
       </div>
     </div>
   );

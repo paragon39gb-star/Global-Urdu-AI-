@@ -1,6 +1,6 @@
 {
   "name": "Chat GRC",
-  "description": "Chat with Global Research Centre (GRC) by Qari Khalid Mahmood Gold medalist. A specialized AI assistant for conversation, reasoning, and research.",
+  "description": "Chat GRC - A specialized assistant for research and conversation in Urdu, by Global Research Centre.",
   "requestFramePermissions": [
     "camera",
     "microphone"

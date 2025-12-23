@@ -3,8 +3,12 @@
 <html lang="ur">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chat GRC - Global Research Centre</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Chat GRC - جدید اردو تحقیقی معاون</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#020617">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <script src="https://cdn.tailwindcss.com?plugins=typography"></script>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Arabic:wght@400;700&family=Inter:wght@400;600&display=swap" rel="stylesheet">
     <style>
@@ -18,19 +22,20 @@
             --font-nastaleeq: 'Jameel Noori Nastaleeq', 'Noto Sans Arabic', serif;
             --font-sans: 'Noto Sans Arabic', sans-serif;
             --font-english: 'Inter', sans-serif;
-            --primary-glow: radial-gradient(circle, rgba(99, 102, 241, 0.15) 0%, rgba(15, 23, 42, 0) 70%);
+            --dark-blue: #020617;
+            --panel-bg: rgba(15, 23, 42, 0.95);
         }
 
         body {
-            background-color: #030712;
-            color: #f8fafc;
+            background-color: var(--dark-blue);
+            color: #f1f5f9;
             line-height: 1.6;
             margin: 0;
             overflow: hidden;
             height: 100vh;
+            padding-bottom: env(safe-area-inset-bottom);
         }
 
-        /* Animated Mesh Background */
         .mesh-bg {
             position: fixed;
             top: 0;
@@ -38,69 +43,63 @@
             width: 100%;
             height: 100%;
             z-index: -1;
-            background: #030712;
+            background: radial-gradient(circle at top right, #0c4a6e 0%, #020617 100%);
             overflow: hidden;
         }
+        
         .mesh-circle {
             position: absolute;
             border-radius: 50%;
-            filter: blur(100px);
-            opacity: 0.12;
-            animation: move 20s infinite alternate;
+            filter: blur(140px);
+            opacity: 0.15;
+            animation: move 30s infinite alternate;
         }
-        .c1 { width: 600px; height: 600px; background: #6366f1; top: -10%; left: -10%; }
-        .c2 { width: 500px; height: 500px; background: #a855f7; bottom: -5%; right: -5%; animation-delay: -5s; }
-        .c3 { width: 400px; height: 400px; background: #4f46e5; top: 40%; left: 30%; animation-delay: -10s; }
+        .c1 { width: 700px; height: 700px; background: #0ea5e9; top: -15%; left: -10%; }
+        .c2 { width: 600px; height: 600px; background: #38bdf8; bottom: -10%; right: -5%; animation-delay: -5s; }
 
         @keyframes move {
             from { transform: translate(0, 0) scale(1); }
-            to { transform: translate(100px, 50px) scale(1.1); }
+            to { transform: translate(60px, 40px) scale(1.1); }
         }
 
         .urdu-nastaleeq { font-family: var(--font-nastaleeq); }
         .urdu-sans { font-family: var(--font-sans); }
-        .urdu-text { line-height: 2.4; }
+        .urdu-text { 
+            line-height: 1.9; 
+            text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+        }
 
-        /* Glassmorphism Classes */
         .glass-panel {
-            background: rgba(17, 24, 39, 0.6);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-            border: 1px solid rgba(255, 255, 255, 0.05);
+            background: var(--panel-bg);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
         }
 
         .glass-card {
-            background: rgba(31, 41, 55, 0.3);
-            backdrop-filter: blur(8px);
-            border: 1px solid rgba(255, 255, 255, 0.04);
+            background: rgba(30, 41, 59, 0.5);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
-        .glass-card:hover {
-            background: rgba(55, 65, 81, 0.4);
-            border-color: rgba(99, 102, 241, 0.3);
-            transform: translateY(-2px);
-        }
-
-        /* Scrollbar Styling */
-        ::-webkit-scrollbar { width: 6px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb {
-            background: rgba(255, 255, 255, 0.08);
-            border-radius: 10px;
-        }
-        ::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.15); }
-
-        .high-contrast body { background: #000 !important; }
-        .high-contrast .glass-panel { background: #000 !important; border-color: #fff !important; }
-
-        @keyframes pulse-slow {
-          0%, 100% { opacity: 1; transform: scale(1); }
-          50% { opacity: 0.8; transform: scale(1.05); }
-        }
-        .animate-pulse-slow { animation: pulse-slow 4s infinite ease-in-out; }
-
-        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        
         .no-scrollbar::-webkit-scrollbar { display: none; }
+
+        .prose {
+            --tw-prose-invert-body: #e2e8f0;
+            --tw-prose-invert-headings: #ffffff;
+            --tw-prose-invert-strong: #7dd3fc;
+            --tw-prose-invert-links: #38bdf8;
+            --tw-prose-invert-code: #f0f9ff;
+        }
+
+        @keyframes bubble-in {
+            from { opacity: 0; transform: translateY(8px) scale(0.99); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        .animate-bubble {
+            animation: bubble-in 0.3s ease-out forwards;
+        }
     </style>
 <script type="importmap">
 {
@@ -119,7 +118,6 @@
     <div class="mesh-bg">
         <div class="mesh-circle c1"></div>
         <div class="mesh-circle c2"></div>
-        <div class="mesh-circle c3"></div>
     </div>
     <div id="root"></div>
 </body>

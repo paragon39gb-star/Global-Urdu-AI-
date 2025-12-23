@@ -1,24 +1,48 @@
 
-import React, { useMemo } from 'react';
-import { Sparkles, User, Copy, Check, ExternalLink, FileText } from 'lucide-react';
+import React, { useMemo, useState, useRef, useEffect } from 'react';
+/* Added Loader2 to imports to fix the error on line 181 */
+import { Sparkles, User, Copy, Check, ExternalLink, FileText, Share2, Download, Volume2, VolumeX, Play, Pause, Square, Loader2 } from 'lucide-react';
 import { Message, UserSettings } from '../types';
 import { marked } from 'marked';
+import { urduAI } from '../services/geminiService';
 
 interface MessageBubbleProps {
   message: Message;
   settings: UserSettings;
 }
 
+type AudioState = 'idle' | 'loading' | 'playing' | 'paused';
+
 export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, settings }) => {
   const isAssistant = message.role === 'assistant';
-  const [copied, setCopied] = React.useState(false);
+  const [copied, setCopied] = useState(false);
+  const [audioState, setAudioState] = useState<AudioState>('idle');
+  
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const audioBufferRef = useRef<AudioBuffer | null>(null);
+  const sourceNodeRef = useRef<AudioBufferSourceNode | null>(null);
+  const startTimeRef = useRef<number>(0);
+  const offsetRef = useRef<number>(0);
+  
   const sources = message.sources || [];
-
   const isUrdu = /[\u0600-\u06FF]/.test(message.content);
 
   const htmlContent = useMemo(() => {
     return marked.parse(message.content || '');
   }, [message.content]);
+
+  useEffect(() => {
+    return () => { stopAudio(); };
+  }, []);
+
+  const stopAudio = () => {
+    if (sourceNodeRef.current) {
+      try { sourceNodeRef.current.stop(); } catch(e) {}
+      sourceNodeRef.current = null;
+    }
+    setAudioState('idle');
+    offsetRef.current = 0;
+  };
 
   const handleCopy = () => {
     navigator.clipboard.writeText(message.content);
@@ -26,71 +50,117 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, settings 
     setTimeout(() => setCopied(false), 2000);
   };
 
-  return (
-    <div className={`w-full group py-8 md:py-12 px-4 md:px-12 flex flex-col md:flex-row gap-6 ${isAssistant ? 'relative' : ''}`}>
-      
-      {/* Visual background for assistant response */}
-      {isAssistant && (
-        <div className="absolute inset-x-4 md:inset-x-8 inset-y-2 glass-panel rounded-[2.5rem] border-white/5 bg-gradient-to-br from-indigo-900/5 to-transparent -z-0" />
-      )}
+  const handleShare = async () => {
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: 'Chat GRC Research',
+          text: message.content,
+          url: window.location.href,
+        });
+      } catch (err) {}
+    } else {
+      handleCopy();
+      alert("متن کاپی کر لیا گیا ہے۔");
+    }
+  };
 
-      <div className="flex shrink-0 gap-4 relative z-10 items-start">
-         <div className={`w-10 h-10 md:w-12 md:h-12 rounded-2xl flex items-center justify-center shrink-0 border transition-all ${isAssistant ? 'bg-gradient-to-br from-indigo-600 to-violet-600 border-indigo-400/40 shadow-[0_0_20px_rgba(99,102,241,0.3)]' : 'bg-slate-800 border-white/10 shadow-xl'}`}>
-            {isAssistant ? <Sparkles size={20} className="text-white md:w-6 md:h-6" /> : <User size={20} className="text-white md:w-6 md:h-6" />}
+  const handleSpeak = async () => {
+    if (audioState === 'playing') {
+      if (sourceNodeRef.current) {
+        try { sourceNodeRef.current.stop(); } catch(e) {}
+        sourceNodeRef.current = null;
+      }
+      if (audioContextRef.current) {
+        const elapsedSinceStart = audioContextRef.current.currentTime - startTimeRef.current;
+        offsetRef.current += elapsedSinceStart * settings.voiceSpeed;
+      }
+      setAudioState('paused');
+      return;
+    }
+
+    if (audioState === 'paused' && audioBufferRef.current) {
+      playFromOffset(offsetRef.current);
+      return;
+    }
+
+    setAudioState('loading');
+    const base64Audio = await urduAI.textToSpeech(message.content, settings.voiceName);
+    
+    if (base64Audio) {
+      try {
+        const audioData = atob(base64Audio);
+        const arrayBuffer = new Uint8Array(audioData.length).map((_, i) => audioData.charCodeAt(i)).buffer;
+        const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
+        audioContextRef.current = audioCtx;
+        const dataInt16 = new Int16Array(arrayBuffer);
+        const buffer = audioCtx.createBuffer(1, dataInt16.length, 24000);
+        const channelData = buffer.getChannelData(0);
+        for (let i = 0; i < dataInt16.length; i++) channelData[i] = dataInt16[i] / 32768.0;
+        audioBufferRef.current = buffer;
+        playFromOffset(0);
+      } catch (err) {
+        setAudioState('idle');
+      }
+    } else {
+      setAudioState('idle');
+    }
+  };
+
+  const playFromOffset = (offset: number) => {
+    if (!audioContextRef.current || !audioBufferRef.current) return;
+    const source = audioContextRef.current.createBufferSource();
+    source.buffer = audioBufferRef.current;
+    source.playbackRate.value = settings.voiceSpeed;
+    const gainNode = audioContextRef.current.createGain();
+    source.connect(gainNode);
+    gainNode.connect(audioContextRef.current.destination);
+    const duration = audioBufferRef.current.duration;
+    const startPos = Math.max(0, Math.min(offset, duration - 0.01));
+    source.start(0, startPos);
+    sourceNodeRef.current = source;
+    startTimeRef.current = audioContextRef.current.currentTime;
+    setAudioState('playing');
+    source.onended = () => {
+      if (sourceNodeRef.current === source) {
+        setAudioState('idle');
+        offsetRef.current = 0;
+        sourceNodeRef.current = null;
+      }
+    };
+  };
+
+  return (
+    <div className={`w-full py-4 md:py-8 px-3 md:px-12 flex flex-col md:flex-row gap-3 md:gap-8 animate-bubble ${isAssistant ? 'bg-sky-500/[0.03] rounded-3xl md:rounded-[2.5rem] border border-sky-400/10' : ''}`}>
+      
+      <div className="flex shrink-0 gap-3 items-start md:mt-1">
+         <div className={`w-9 h-9 md:w-14 md:h-14 rounded-xl flex items-center justify-center shrink-0 border transition-all ${isAssistant ? 'bg-gradient-to-br from-sky-600 to-sky-400 border-sky-300/30' : 'bg-slate-800 border-white/10 shadow-xl'}`}>
+            {isAssistant ? <Sparkles size={16} className="text-white md:w-8 md:h-8" /> : <User size={16} className="text-white md:w-8 md:h-8" />}
           </div>
-          <div className="md:hidden flex-1">
-             <div className="font-bold text-[10px] text-indigo-400 uppercase tracking-widest flex items-center gap-2">
-                {isAssistant ? 'Chat GRC' : 'User'}
-                {isAssistant && <span className="text-[7px] px-1.5 py-0.5 bg-indigo-500/20 rounded border border-indigo-400/30">RESEARCH AI</span>}
+          <div className="md:hidden flex flex-col justify-center">
+             <div className="font-bold text-[9px] text-sky-400 uppercase tracking-widest">
+                {isAssistant ? 'Chat GRC' : 'Authorized User'}
              </div>
           </div>
       </div>
 
-      <div className="flex-1 space-y-4 overflow-hidden relative z-10">
-        <div className="hidden md:flex font-bold text-[10px] text-indigo-400 uppercase tracking-[0.2em] items-center gap-3 opacity-60">
-          {isAssistant ? (
-            <>
-              <span>Chat GRC Research Node</span>
-              <div className="w-1 h-1 rounded-full bg-slate-600" />
-              <span className="text-[8px] px-2 py-0.5 bg-indigo-500/10 rounded border border-indigo-400/20">VERIFIED</span>
-            </>
-          ) : 'Authorized User Access'}
-        </div>
-        
-        {message.attachments && message.attachments.length > 0 && (
-          <div className="flex flex-wrap gap-3 mb-4">
-            {message.attachments.map((att, i) => (
-              <div key={i} className="max-w-[180px] md:max-w-[240px] border border-white/10 rounded-2xl overflow-hidden glass-card shadow-2xl ring-1 ring-white/5">
-                {att.previewUrl ? (
-                  <img src={att.previewUrl} className="w-full max-h-48 md:max-h-60 object-contain bg-black/40" />
-                ) : (
-                  <div className="p-4 flex items-center gap-3">
-                    <FileText size={18} className="text-indigo-400" />
-                    <span className="text-xs text-slate-300 truncate font-mono">{att.name}</span>
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
-
+      <div className="flex-1 space-y-3 md:space-y-6 overflow-hidden">
         <div 
-          className={`prose prose-invert max-w-none break-words leading-relaxed ${isUrdu ? 'urdu-text text-right' : 'text-left'} prose-headings:text-white prose-strong:text-indigo-400 prose-code:bg-black/60 prose-code:p-1.5 prose-code:rounded-lg prose-pre:bg-black/60 prose-pre:border prose-pre:border-white/10 prose-pre:rounded-2xl`}
-          style={{ fontSize: settings.fontSize === 'large' ? (isUrdu ? '1.4rem' : '1.2rem') : (isUrdu ? '1.2rem' : '1.05rem') }}
+          className={`prose prose-invert max-w-none break-words leading-relaxed md:leading-relaxed ${isUrdu ? 'urdu-text text-right' : 'text-left'} prose-headings:text-white prose-strong:text-sky-300 prose-code:bg-black/40 prose-code:px-2 prose-code:rounded prose-pre:bg-black/60 prose-pre:rounded-2xl text-slate-100`}
+          style={{ 
+            fontSize: settings.fontSize === 'large' ? (isUrdu ? '1.3rem' : '1.2rem') : (isUrdu ? '1.1rem' : '1.0rem')
+          }}
           dir={isUrdu ? 'rtl' : 'ltr'}
           dangerouslySetInnerHTML={{ __html: htmlContent }}
         />
 
         {sources.length > 0 && (
-          <div className="mt-6 p-5 glass-panel rounded-[1.5rem] border-indigo-500/20 bg-indigo-500/5">
-            <div className="flex items-center gap-2 mb-3">
-               <ExternalLink size={12} className="text-indigo-400" />
-               <h4 className="text-[10px] font-bold text-indigo-400 urdu-text uppercase tracking-widest">تحقیق کے ذرائع (Sources):</h4>
-            </div>
-            <div className="flex flex-wrap gap-2">
+          <div className="mt-4 p-4 md:p-8 glass-panel rounded-2xl border-sky-400/20 bg-sky-500/5 shadow-inner">
+            <h4 className="text-[10px] md:text-sm font-bold text-sky-300 urdu-text mb-3 md:mb-5">تصدیق شدہ مآخذ (Sources):</h4>
+            <div className="flex flex-wrap gap-2 md:gap-4">
               {sources.map((s, idx) => (
-                <a key={idx} href={s.uri} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 px-4 py-2 bg-black/30 hover:bg-black/60 rounded-xl text-[10px] text-slate-300 transition-all border border-white/5 hover:border-indigo-500/30 hover:scale-105 active:scale-95 shadow-sm">
-                  <span className="truncate max-w-[120px] md:max-w-[200px]">{s.title}</span>
+                <a key={idx} href={s.uri} target="_blank" rel="noopener noreferrer" className="px-3 py-2 bg-black/50 hover:bg-black/70 rounded-lg text-[9px] md:text-xs text-sky-200 border border-white/5 transition-all truncate max-w-[150px] md:max-w-[300px]">
+                  {s.title}
                 </a>
               ))}
             </div>
@@ -98,10 +168,32 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, settings 
         )}
 
         {isAssistant && message.content && (
-          <div className="pt-2 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-all duration-300">
-            <button onClick={handleCopy} className="px-3 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-slate-400 hover:text-white transition-all flex items-center gap-2 text-[10px]">
-              {copied ? <Check size={12} className="text-green-500" /> : <Copy size={12} />}
-              <span className="urdu-text tracking-wider">نقل کریں</span>
+          <div className="pt-3 flex flex-wrap items-center gap-2 md:gap-3 opacity-100 md:opacity-0 group-hover:opacity-100 transition-all duration-300">
+            <button onClick={handleCopy} className="p-2.5 md:p-3 bg-white/5 hover:bg-white/10 rounded-xl transition-all border border-white/5 active:scale-90" title="کاپی">
+              {copied ? <Check size={14} className="text-emerald-400" /> : <Copy size={14} />}
+            </button>
+            
+            <div className="flex items-center bg-sky-600/10 rounded-xl border border-sky-500/20 p-1">
+              <button 
+                onClick={handleSpeak} 
+                disabled={audioState === 'loading'} 
+                className={`flex items-center gap-2 px-3 md:px-5 py-1.5 md:py-2 rounded-lg transition-all text-[10px] md:text-sm font-bold urdu-text ${audioState !== 'idle' ? 'text-sky-300 bg-sky-500/20' : 'text-sky-100 hover:text-white hover:bg-white/5'}`}
+              >
+                {audioState === 'loading' ? <Loader2 size={14} className="animate-spin" /> : 
+                 audioState === 'playing' ? <Pause size={14} /> : 
+                 audioState === 'paused' ? <Play size={14} /> : <Volume2 size={14} />}
+                <span>{audioState === 'loading' ? 'تیار...' : audioState === 'playing' ? 'روکیں' : 'آڈیو'}</span>
+              </button>
+              
+              {audioState !== 'idle' && (
+                <button onClick={stopAudio} className="p-2 text-red-400 hover:text-red-300 transition-colors">
+                  <Square size={12} fill="currentColor" />
+                </button>
+              )}
+            </div>
+
+            <button onClick={handleShare} className="p-2.5 md:p-3 bg-white/5 hover:bg-white/10 rounded-xl transition-all border border-white/5 active:scale-90" title="شیئر">
+              <Share2 size={14} />
             </button>
           </div>
         )}

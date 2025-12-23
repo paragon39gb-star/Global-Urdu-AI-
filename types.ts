@@ -6,6 +6,12 @@ export interface Attachment {
   previewUrl?: string;
 }
 
+export interface User {
+  id: string;
+  name: string;
+  email: string;
+}
+
 export interface Message {
   id: string;
   role: 'user' | 'assistant';
@@ -34,4 +40,7 @@ export interface UserSettings {
   fontFamily: 'nastaleeq' | 'sans';
   highContrast: boolean;
   voiceName: 'Kore' | 'Zephyr' | 'Fenrir' | 'Puck';
+  currentUser: User | null;
+  voicePitch: number;
+  voiceSpeed: number;
 }
