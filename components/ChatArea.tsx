@@ -123,17 +123,17 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
     <div className="flex-1 flex flex-col h-full relative overflow-hidden bg-[#020617]">
       <div className="flex-1 flex flex-col md:glass-panel md:m-3 md:rounded-[2rem] overflow-hidden shadow-2xl relative border-0 md:border border-white/10">
         
-        {/* Header - Showing text labels instead of just icons */}
+        {/* Header */}
         <header className="h-16 md:h-24 flex items-center justify-between px-2 md:px-10 border-b border-white/10 sticky top-0 z-30 shrink-0 bg-[#0f172a]/95 backdrop-blur-3xl">
           <div className="flex items-center gap-1 md:gap-4">
             <button onClick={onToggleSidebar} className="lg:hidden p-2 text-white hover:bg-white/10 rounded-xl transition-colors">
-              <Menu size={22} />
+              <Menu className="w-5 h-5 md:w-7 md:h-7" />
             </button>
             <div className="relative">
               <button onClick={() => setShowModelMenu(!showModelMenu)} className="flex items-center gap-1.5 md:gap-4 px-1 hover:bg-white/5 rounded-2xl transition-all py-1">
                 <div className="hidden md:block w-4 h-4 rounded-full bg-sky-400 shadow-[0_0_10px_rgba(56,189,248,0.6)] animate-pulse" />
                 <span className="font-black urdu-text text-xl md:text-5xl text-white tracking-tight drop-shadow-[0_2px_10px_rgba(0,0,0,0.5)]">Chat GRC</span>
-                <ChevronDown size={14} md:size={22} className={`text-sky-400 transition-transform duration-300 ${showModelMenu ? 'rotate-180' : ''}`} />
+                <ChevronDown className={`text-sky-400 transition-transform duration-300 w-4 h-4 md:w-6 md:h-6 ${showModelMenu ? 'rotate-180' : ''}`} />
               </button>
               {showModelMenu && (
                 <div className="absolute top-full left-0 mt-2 w-64 glass-panel border-white/10 rounded-2xl shadow-2xl py-3 z-50 bg-[#1e293b]">
@@ -146,14 +146,16 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
           
           <div className="flex items-center gap-1 md:gap-3">
              <button onClick={onFetchNews} className="flex items-center gap-1 px-2 md:px-4 py-1.5 md:py-2.5 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 rounded-xl border border-emerald-500/20 transition-all">
-                <Newspaper size={16} md:size={18} />
+                <Newspaper className="w-4 h-4 md:w-5 md:h-5" />
                 <span className="urdu-text text-[10px] md:text-base font-bold">خبریں</span>
              </button>
              <button onClick={onFetchAIUpdates} className="flex items-center gap-1 px-2 md:px-4 py-1.5 md:py-2.5 bg-violet-500/10 text-violet-400 hover:bg-violet-500/20 rounded-xl border border-violet-500/20 transition-all">
-                <Zap size={16} md:size={18} />
+                <Zap className="w-4 h-4 md:w-5 md:h-5" />
                 <span className="urdu-text text-[10px] md:text-base font-bold">AI اپڈیٹس</span>
              </button>
-             <button onClick={onStartVoice} className="p-2 md:p-4 bg-sky-600 text-white rounded-xl md:rounded-2xl shadow-lg active:scale-95"><Mic size={18} md:size={20} /></button>
+             <button onClick={onStartVoice} className="p-2 md:p-4 bg-sky-600 text-white rounded-xl md:rounded-2xl shadow-lg active:scale-95">
+                <Mic className="w-4 h-4 md:w-5 md:h-5" />
+             </button>
           </div>
         </header>
 
@@ -205,9 +207,9 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
                 <div className="flex justify-start px-2">
                   <div className="bg-white/5 px-5 md:px-10 py-3 md:py-6 rounded-2xl md:rounded-[2.5rem] border border-white/10">
                     <div className="flex gap-2 items-center">
-                      <div className="w-1.5 md:w-3 h-1.5 md:h-3 bg-sky-400 rounded-full animate-bounce" />
-                      <div className="w-1.5 md:w-3 h-1.5 md:h-3 bg-sky-400 rounded-full animate-bounce" style={{animationDelay: '200ms'}} />
-                      <div className="w-1.5 md:w-3 h-1.5 md:h-3 bg-sky-400 rounded-full animate-bounce" style={{animationDelay: '400ms'}} />
+                      <div className="w-1.5 h-1.5 md:w-3 md:h-3 bg-sky-400 rounded-full animate-bounce" />
+                      <div className="w-1.5 h-1.5 md:w-3 md:h-3 bg-sky-400 rounded-full animate-bounce" style={{animationDelay: '200ms'}} />
+                      <div className="w-1.5 h-1.5 md:w-3 md:h-3 bg-sky-400 rounded-full animate-bounce" style={{animationDelay: '400ms'}} />
                     </div>
                   </div>
                 </div>
@@ -223,8 +225,12 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
             <div className="relative flex items-end w-full bg-[#0f172a] md:bg-[#0f172a]/90 backdrop-blur-3xl rounded-[2rem] md:rounded-[3rem] p-1.5 md:p-3 transition-all shadow-[0_30px_70px_-15px_rgba(0,0,0,0.8)] border border-white/10 focus-within:border-sky-500/50 focus-within:ring-4 focus-within:ring-sky-500/5">
               
               <div className="flex items-center gap-0.5 md:gap-2 px-1 md:px-4 mb-2 md:mb-4">
-                <button type="button" onClick={() => fileInputRef.current?.click()} className="p-2.5 md:p-4 text-slate-400 hover:text-sky-400 hover:bg-white/5 rounded-full transition-all"><Paperclip size={20} md:size={26} /></button>
-                <button type="button" onClick={toggleInputListening} className={`p-2.5 md:p-4 rounded-full transition-all ${isListeningInput ? 'text-red-500 bg-red-500/10 animate-pulse' : 'text-slate-400 hover:text-sky-400 hover:bg-white/5'}`}><Mic size={20} md:size={26} /></button>
+                <button type="button" onClick={() => fileInputRef.current?.click()} className="p-2.5 md:p-4 text-slate-400 hover:text-sky-400 hover:bg-white/5 rounded-full transition-all">
+                    <Paperclip className="w-5 h-5 md:w-6 md:h-6" />
+                </button>
+                <button type="button" onClick={toggleInputListening} className={`p-2.5 md:p-4 rounded-full transition-all ${isListeningInput ? 'text-red-500 bg-red-500/10 animate-pulse' : 'text-slate-400 hover:text-sky-400 hover:bg-white/5'}`}>
+                    <Mic className="w-5 h-5 md:w-6 md:h-6" />
+                </button>
               </div>
 
               <input type="file" multiple ref={fileInputRef} className="hidden" />
@@ -252,7 +258,7 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
                 disabled={(!input.trim() && attachments.length === 0) || isLoading} 
                 className={`p-4 md:p-7 rounded-full transition-all ml-1 md:ml-4 mb-2 md:mb-4 flex items-center justify-center ${input.trim() || attachments.length > 0 ? 'bg-sky-600 text-white shadow-xl active:scale-90 hover:bg-sky-500' : 'bg-slate-800 text-slate-600 cursor-not-allowed'}`}
               >
-                {isLoading ? <Loader2 size={22} md:size={32} className="animate-spin" /> : <ArrowUp size={22} md:size={32} strokeWidth={3} />}
+                {isLoading ? <Loader2 className="w-5 h-5 md:w-8 md:h-8 animate-spin" /> : <ArrowUp className="w-5 h-5 md:w-8 md:h-8" strokeWidth={3} />}
               </button>
             </div>
           </form>

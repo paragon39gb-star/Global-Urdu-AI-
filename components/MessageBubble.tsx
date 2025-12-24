@@ -133,7 +133,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, settings 
       
       <div className="flex shrink-0 gap-3 items-start md:mt-2">
          <div className={`w-10 h-10 md:w-16 md:h-16 rounded-2xl flex items-center justify-center shrink-0 border-2 transition-all ${isAssistant ? 'bg-sky-600 border-sky-400' : 'bg-slate-700 border-slate-600'}`}>
-            {isAssistant ? <Sparkles size={20} className="text-white md:w-8 md:h-8" /> : <User size={20} className="text-white md:w-8 md:h-8" />}
+            {isAssistant ? <Sparkles className="text-white w-5 h-5 md:w-8 md:h-8" /> : <User className="text-white w-5 h-5 md:w-8 md:h-8" />}
           </div>
           <div className="md:hidden flex flex-col justify-center">
              <div className="font-bold text-[10px] text-slate-500 uppercase tracking-widest">
@@ -170,7 +170,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, settings 
         {isAssistant && message.content && (
           <div className="pt-3 flex flex-wrap items-center gap-3 md:gap-5 border-t border-white/5">
             <button onClick={handleCopy} className="p-2.5 md:p-3.5 text-slate-400 hover:text-sky-400 hover:bg-white/5 rounded-xl transition-all active:scale-90" title="کاپی">
-              {copied ? <Check size={18} md:size={22} className="text-emerald-500" /> : <Copy size={18} md:size={22} />}
+              {copied ? <Check className="w-4 h-4 md:w-5 md:h-5 text-emerald-500" /> : <Copy className="w-4 h-4 md:w-5 md:h-5" />}
             </button>
             
             <div className="flex items-center bg-white/5 rounded-xl md:rounded-2xl p-0.5 md:p-1 border border-white/10">
@@ -180,19 +180,19 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, settings 
                 className={`flex items-center gap-2 md:gap-3 px-3 py-2 md:px-6 md:py-3 rounded-lg md:rounded-xl transition-all text-[11px] md:text-lg font-bold urdu-text ${audioState !== 'idle' ? 'text-sky-400 bg-white/10' : 'text-slate-400'}`}
               >
                 {audioState === 'loading' ? <Loader2 size={14} className="animate-spin" /> : 
-                 audioState === 'playing' ? <Pause size={14} md:size={18} /> : <Volume2 size={14} md:size={18} />}
+                 audioState === 'playing' ? <Pause className="w-4 h-4 md:w-5 md:h-5" /> : <Volume2 className="w-4 h-4 md:w-5 md:h-5" />}
                 <span>{audioState === 'loading' ? 'لوڈنگ...' : audioState === 'playing' ? 'روکیں' : 'سنیں'}</span>
               </button>
               
               {audioState !== 'idle' && (
                 <button onClick={stopAudio} className="p-2 md:p-3 text-red-400 hover:bg-white/10 rounded-lg ml-1">
-                  <Square size={12} md:size={16} fill="currentColor" />
+                  <Square className="w-3 h-3 md:w-4 md:h-4" fill="currentColor" />
                 </button>
               )}
             </div>
 
             <button onClick={handleShare} className="p-2.5 md:p-3.5 text-slate-400 hover:text-sky-400 hover:bg-white/5 rounded-xl transition-all" title="شیئر">
-              <Share2 size={18} md:size={22} />
+              <Share2 className="w-4 h-4 md:w-5 md:h-5" />
             </button>
           </div>
         )}
