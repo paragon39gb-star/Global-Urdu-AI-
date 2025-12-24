@@ -1,21 +1,20 @@
 
-import { GoogleGenAI, Chat, Modality, LiveServerMessage } from "@google/genai";
+import { GoogleGenAI, Chat, Modality, LiveServerMessage, Part } from "@google/genai";
 import { SYSTEM_PROMPT } from "../constants";
 
-declare global {
-  namespace NodeJS {
-    interface ProcessEnv {
-      API_KEY: string;
-    }
-  }
-}
+// Fix for TypeScript environment
+declare const window: any;
 
 class ChatGRCService {
   private chatInstance: Chat | null = null;
   private currentModel: string | null = null;
 
+  private getApiKey(): string {
+    return (window.process?.env?.API_KEY) || '';
+  }
+
   private initializeChat(model: string, history: any[] = [], customInstructions?: string) {
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
+    const ai = new GoogleGenAI({ apiKey: this.getApiKey() });
     const geminiHistory = history.map(msg => ({
       role: msg.role === 'user' ? 'user' : 'model',
       parts: [
@@ -60,14 +59,15 @@ class ChatGRCService {
     }
 
     try {
-      const parts: any[] = [{ text: message }];
+      const parts: Part[] = [{ text: message }];
       attachments.forEach(att => {
         parts.push({
           inlineData: { data: att.data.split(',')[1], mimeType: att.mimeType }
         });
       });
 
-      const responseStream = await this.chatInstance!.sendMessageStream({ message: { parts: parts } });
+      // Fixed: 'message' parameter in sendMessageStream expects Part | Part[] directly, not nested in an object
+      const responseStream = await this.chatInstance!.sendMessageStream({ message: parts });
       let fullText = "";
       let allSources: any[] = [];
       
@@ -99,7 +99,7 @@ class ChatGRCService {
   }
 
   async textToSpeech(text: string, voiceName: string) {
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
+    const ai = new GoogleGenAI({ apiKey: this.getApiKey() });
     try {
       const response = await ai.models.generateContent({
         model: "gemini-2.5-flash-preview-tts",
@@ -118,7 +118,7 @@ class ChatGRCService {
   }
 
   async connectLive(options: any) {
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
+    const ai = new GoogleGenAI({ apiKey: this.getApiKey() });
     const { callbacks, voiceName } = options;
     return ai.live.connect({
       model: 'gemini-2.5-flash-native-audio-preview-09-2025',
