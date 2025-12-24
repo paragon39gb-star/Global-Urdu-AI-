@@ -101,6 +101,14 @@
             animation: bubble-in 0.3s ease-out forwards;
         }
     </style>
+<script>
+    // Shim for process.env which is required by @google/genai in browser environments
+    window.process = {
+        env: {
+            API_KEY: "" 
+        }
+    };
+</script>
 <script type="importmap">
 {
   "imports": {
@@ -120,7 +128,6 @@
         <div class="mesh-circle c2"></div>
     </div>
     <div id="root"></div>
-    <!-- Entry point script for deployment -->
     <script type="module" src="index.tsx"></script>
 </body>
 </html>
