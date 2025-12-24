@@ -282,8 +282,8 @@ export const LiveMode: React.FC<LiveModeProps> = ({ onClose, settings }) => {
         </div>
         <div className="p-6 md:p-10 border-t border-white/5 shrink-0 bg-black/60">
            <div className="flex flex-col items-center gap-3">
-              <p className="text-[10px] md:text-[12px] text-slate-500 font-bold uppercase tracking-[0.3em] md:tracking-[0.6em] urdu-text text-center opacity-60">
-                <span className="text-white font-black">Qari Khalid Mahmood</span> Gold Medalist
+              <p className="text-[14px] md:text-[20px] text-white font-black uppercase tracking-[0.2em] urdu-text text-center drop-shadow-md">
+                <span className="text-yellow-400">Qari Khalid Mahmood</span> Gold Medalist
               </p>
            </div>
         </div>

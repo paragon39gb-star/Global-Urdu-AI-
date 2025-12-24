@@ -2,26 +2,21 @@
 import { GoogleGenAI, Chat, Modality, LiveServerMessage, Part } from "@google/genai";
 import { SYSTEM_PROMPT } from "../constants";
 
-// Fix for TypeScript environment
-declare const window: any;
-
 class ChatGRCService {
   private chatInstance: Chat | null = null;
   private currentModel: string | null = null;
 
-  private getApiKey(): string {
-    return (window.process?.env?.API_KEY) || '';
-  }
-
   private initializeChat(model: string, history: any[] = [], customInstructions?: string) {
-    const ai = new GoogleGenAI({ apiKey: this.getApiKey() });
+    // Correct way to initialize: use process.env.API_KEY directly
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    
     const geminiHistory = history.map(msg => ({
       role: msg.role === 'user' ? 'user' : 'model',
       parts: [
         { text: msg.content },
         ...(msg.attachments || []).map((a: any) => ({
           inlineData: {
-            data: a.data.split(',')[1],
+            data: a.data.includes(',') ? a.data.split(',')[1] : a.data,
             mimeType: a.mimeType
           }
         }))
@@ -62,11 +57,13 @@ class ChatGRCService {
       const parts: Part[] = [{ text: message }];
       attachments.forEach(att => {
         parts.push({
-          inlineData: { data: att.data.split(',')[1], mimeType: att.mimeType }
+          inlineData: { 
+            data: att.data.includes(',') ? att.data.split(',')[1] : att.data, 
+            mimeType: att.mimeType 
+          }
         });
       });
 
-      // Fixed: 'message' parameter in sendMessageStream expects Part | Part[] directly, not nested in an object
       const responseStream = await this.chatInstance!.sendMessageStream({ message: parts });
       let fullText = "";
       let allSources: any[] = [];
@@ -99,7 +96,7 @@ class ChatGRCService {
   }
 
   async textToSpeech(text: string, voiceName: string) {
-    const ai = new GoogleGenAI({ apiKey: this.getApiKey() });
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     try {
       const response = await ai.models.generateContent({
         model: "gemini-2.5-flash-preview-tts",
@@ -113,12 +110,13 @@ class ChatGRCService {
       });
       return response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
     } catch (error) {
+      console.error("TTS Error:", error);
       return null;
     }
   }
 
   async connectLive(options: any) {
-    const ai = new GoogleGenAI({ apiKey: this.getApiKey() });
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     const { callbacks, voiceName } = options;
     return ai.live.connect({
       model: 'gemini-2.5-flash-native-audio-preview-09-2025',
@@ -132,7 +130,10 @@ class ChatGRCService {
           if (message.serverContent?.turnComplete) callbacks.onTurnComplete();
           if (message.serverContent?.interrupted) callbacks.onInterrupted();
         },
-        onerror: () => callbacks.onClose(),
+        onerror: (e) => {
+          console.error("Live Error:", e);
+          callbacks.onClose();
+        },
         onclose: () => callbacks.onClose()
       },
       config: {

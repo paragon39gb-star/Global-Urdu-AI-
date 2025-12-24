@@ -263,8 +263,8 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
             </div>
           </form>
           
-          <div className="mt-2 text-center">
-             <p className="text-[7px] md:text-[11px] urdu-text text-slate-500 font-bold uppercase tracking-wider">
+          <div className="mt-4 text-center">
+             <p className="text-[22px] md:text-[42px] urdu-text text-white font-black uppercase tracking-widest drop-shadow-2xl">
                Chat GRC - از <span className="text-yellow-400 font-black">قاری خالد محمود</span>
              </p>
           </div>

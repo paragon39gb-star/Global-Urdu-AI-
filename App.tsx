@@ -20,7 +20,7 @@ const App: React.FC = () => {
   const [customInstructions, setCustomInstructions] = useState('');
   const [settings, setSettings] = useState<UserSettings>({
     fontSize: 'normal',
-    fontFamily: 'nastaleeq',
+    fontFamily: 'sans', // Sada font is the default
     highContrast: false,
     voiceName: 'Kore',
     currentUser: null,
@@ -48,7 +48,12 @@ const App: React.FC = () => {
     const savedSettings = localStorage.getItem('chat_grc_settings');
     if (savedInstructions) setCustomInstructions(savedInstructions);
     if (savedSettings) {
-      try { setSettings(prev => ({ ...prev, ...JSON.parse(savedSettings) })); } catch (e) {}
+      try { 
+        const parsed = JSON.parse(savedSettings);
+        setSettings(prev => ({ ...prev, ...parsed })); 
+      } catch (e) {
+        console.error("Settings load error:", e);
+      }
     }
     const setHeight = () => document.documentElement.style.setProperty('--vh', `${window.innerHeight * 0.01}px`);
     setHeight();
@@ -62,8 +67,8 @@ const App: React.FC = () => {
       if (saved) {
         try {
           const parsed = JSON.parse(saved);
-          setSessions(parsed);
-          if (parsed.length > 0) {
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            setSessions(parsed);
             setCurrentSessionId(parsed[0].id);
             chatGRC.resetChat();
           } else {
@@ -75,10 +80,8 @@ const App: React.FC = () => {
       } else {
         createNewChat();
       }
-    } else {
-      if (sessions.length === 0) {
-        createNewChat();
-      }
+    } else if (sessions.length === 0) {
+      createNewChat();
     }
   }, [settings.currentUser, createNewChat]);
 
@@ -150,6 +153,7 @@ const App: React.FC = () => {
       );
     } catch (error) {
       console.error("Chat Error:", error);
+      // Optional: Add error message to UI
     } finally {
       setIsLoading(false);
     }
@@ -167,8 +171,16 @@ const App: React.FC = () => {
     });
   };
 
+  const getFontClass = () => {
+    switch(settings.fontFamily) {
+      case 'nastaleeq': return 'urdu-font-nastaleeq';
+      case 'naskh': return 'urdu-font-naskh';
+      default: return 'urdu-font-sans';
+    }
+  };
+
   return (
-    <div className={`flex h-screen w-full overflow-hidden ${settings.fontFamily === 'nastaleeq' ? 'urdu-font' : 'sans-font'}`}>
+    <div className={`flex h-screen w-full overflow-hidden ${getFontClass()}`}>
       <Sidebar 
         sessions={sessions}
         activeId={currentSessionId}
