@@ -1,19 +1,21 @@
 
-import { GoogleGenAI, GenerateContentResponse, Chat, Modality, LiveServerMessage } from "@google/genai";
+import { GoogleGenAI, Chat, Modality, LiveServerMessage } from "@google/genai";
 import { SYSTEM_PROMPT } from "../constants";
 
-declare var process: {
-  env: {
-    API_KEY: string;
+declare global {
+  namespace NodeJS {
+    interface ProcessEnv {
+      API_KEY: string;
+    }
   }
-};
+}
 
 class ChatGRCService {
   private chatInstance: Chat | null = null;
   private currentModel: string | null = null;
 
   private initializeChat(model: string, history: any[] = [], customInstructions?: string) {
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
     const geminiHistory = history.map(msg => ({
       role: msg.role === 'user' ? 'user' : 'model',
       parts: [
@@ -36,7 +38,7 @@ class ChatGRCService {
         temperature: 0.35,
         topP: 0.9,
         tools: [{ googleSearch: {} }],
-        thinkingConfig: model.includes('pro') ? { thinkingBudget: 8000 } : undefined
+        thinkingConfig: model.includes('pro') ? { thinkingBudget: 32768 } : undefined
       }
     });
   }
@@ -54,7 +56,7 @@ class ChatGRCService {
     }
 
     if (!this.chatInstance) {
-      this.initializeChat(model, history.slice(0, -1), customInstructions);
+      this.initializeChat(model, history, customInstructions);
     }
 
     try {
@@ -75,11 +77,11 @@ class ChatGRCService {
           const chunks = chunk.candidates[0].groundingMetadata.groundingChunks;
           const normalized = chunks
             .filter((c: any) => c.web?.uri)
-            .map((c: any) => ({ title: c.web.title || 'ذریعہ', uri: c.web.uri }));
+            .map((c: any) => ({ title: c.web?.title || 'ذریعہ', uri: c.web?.uri }));
           
           if (normalized.length > 0) {
             const sourceMap = new Map();
-            [...allSources, ...normalized].forEach(s => sourceMap.set(s.uri, s));
+            [...allSources, ...normalized].forEach(s => { if(s.uri) sourceMap.set(s.uri, s); });
             allSources = Array.from(sourceMap.values());
           }
         }
@@ -97,7 +99,7 @@ class ChatGRCService {
   }
 
   async textToSpeech(text: string, voiceName: string) {
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
     try {
       const response = await ai.models.generateContent({
         model: "gemini-2.5-flash-preview-tts",
@@ -116,7 +118,7 @@ class ChatGRCService {
   }
 
   async connectLive(options: any) {
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
     const { callbacks, voiceName } = options;
     return ai.live.connect({
       model: 'gemini-2.5-flash-native-audio-preview-09-2025',

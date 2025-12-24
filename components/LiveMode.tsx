@@ -69,10 +69,11 @@ export const LiveMode: React.FC<LiveModeProps> = ({ onClose, settings }) => {
   };
 
   const startVisualizer = (stream: MediaStream) => {
-    const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+    const AudioContextClass = (window as any).AudioContext || (window as any).webkitAudioContext;
+    const audioCtx = new AudioContextClass();
     const source = audioCtx.createMediaStreamSource(stream);
     const analyser = audioCtx.createAnalyser();
-    analyser.fftSize = 128; // Smaller for speed
+    analyser.fftSize = 128;
     source.connect(analyser);
 
     const bufferLength = analyser.frequencyBinCount;
@@ -117,8 +118,9 @@ export const LiveMode: React.FC<LiveModeProps> = ({ onClose, settings }) => {
       streamRef.current = stream;
       startVisualizer(stream);
       
-      const inputCtx = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 16000 });
-      const outputCtx = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
+      const AudioContextClass = (window as any).AudioContext || (window as any).webkitAudioContext;
+      const inputCtx = new AudioContextClass({ sampleRate: 16000 });
+      const outputCtx = new AudioContextClass({ sampleRate: 24000 });
       
       if (outputCtx.state === 'suspended') await outputCtx.resume();
       if (inputCtx.state === 'suspended') await inputCtx.resume();
@@ -135,20 +137,13 @@ export const LiveMode: React.FC<LiveModeProps> = ({ onClose, settings }) => {
             const buffer = await decodeAudioData(decode(base64), audioContextRef.current);
             const source = audioContextRef.current.createBufferSource();
             source.buffer = buffer;
-            
-            // Apply speed to live feedback
             source.playbackRate.value = settings.voiceSpeed;
-            
             source.connect(outputNodeRef.current!);
-            
             const now = audioContextRef.current.currentTime;
             nextStartTimeRef.current = Math.max(nextStartTimeRef.current, now);
             source.start(nextStartTimeRef.current);
-            
-            // Adjust duration based on speed
             const duration = buffer.duration / settings.voiceSpeed;
             nextStartTimeRef.current += duration;
-            
             sourcesRef.current.add(source);
             source.onended = () => sourcesRef.current.delete(source);
           },
@@ -178,9 +173,7 @@ export const LiveMode: React.FC<LiveModeProps> = ({ onClose, settings }) => {
             setTranscription('');
           },
           onInterrupted: () => {
-            sourcesRef.current.forEach(s => {
-              try { s.stop(); } catch(e) {}
-            });
+            sourcesRef.current.forEach(s => { try { s.stop(); } catch(e) {} });
             sourcesRef.current.clear();
             nextStartTimeRef.current = 0;
           },
@@ -191,8 +184,8 @@ export const LiveMode: React.FC<LiveModeProps> = ({ onClose, settings }) => {
       sessionPromiseRef.current = sessionPromise;
 
       const source = inputCtx.createMediaStreamSource(stream);
-      const scriptProcessor = inputCtx.createScriptProcessor(1024, 1, 1); // Smaller buffer for less delay
-      scriptProcessor.onaudioprocess = (e) => {
+      const scriptProcessor = inputCtx.createScriptProcessor(1024, 1, 1);
+      scriptProcessor.onaudioprocess = (e: any) => {
         const inputData = e.inputBuffer.getChannelData(0);
         const int16 = new Int16Array(inputData.length);
         for (let i = 0; i < inputData.length; i++) {
@@ -217,23 +210,15 @@ export const LiveMode: React.FC<LiveModeProps> = ({ onClose, settings }) => {
   };
 
   const stopSession = () => {
-    sessionPromiseRef.current?.then(s => {
-      try { s.close(); } catch(e) {}
-    });
-    if (audioContextRef.current) {
-      try { audioContextRef.current.close(); } catch(e) {}
-    }
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach(track => track.stop());
-    }
+    sessionPromiseRef.current?.then(s => { try { s.close(); } catch(e) {} });
+    if (audioContextRef.current) { try { audioContextRef.current.close(); } catch(e) {} }
+    if (streamRef.current) { streamRef.current.getTracks().forEach(track => track.stop()); }
   };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/98 backdrop-blur-3xl p-0 md:p-4">
       <div className="w-full h-full md:h-auto md:max-w-2xl md:max-h-[90vh] glass-panel md:rounded-[3rem] border-sky-500/20 flex flex-col relative overflow-hidden shadow-2xl">
-        
         <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-sky-500/10 rounded-full blur-[120px] transition-all duration-1000 pointer-events-none ${isUserSpeaking ? 'scale-150 opacity-100' : 'scale-100 opacity-20'}`} />
-
         <div className="p-5 md:p-8 flex items-center justify-between border-b border-white/5 relative z-20 bg-black/40 shrink-0">
           <div className="flex items-center gap-4">
              <div className={`p-3 rounded-2xl transition-colors duration-500 ${isUserSpeaking ? 'bg-sky-500/30' : 'bg-slate-800/50'}`}>
@@ -243,7 +228,7 @@ export const LiveMode: React.FC<LiveModeProps> = ({ onClose, settings }) => {
                 <h2 className="text-base md:text-xl font-bold urdu-text text-white">براہِ راست گفتگو</h2>
                 <div className="flex items-center gap-2">
                   <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                  <p className="text-[10px] text-sky-300 font-bold uppercase tracking-widest">Turbo Audio Link Active</p>
+                  <p className="text-[10px] text-sky-300 font-bold uppercase tracking-widest">Live Research Active</p>
                 </div>
              </div>
           </div>
@@ -251,7 +236,6 @@ export const LiveMode: React.FC<LiveModeProps> = ({ onClose, settings }) => {
             <X size={24} />
           </button>
         </div>
-
         <div className="p-6 md:p-10 flex flex-col items-center gap-6 shrink-0 relative">
           <div className={`relative w-28 h-28 md:w-40 md:h-40 rounded-full flex items-center justify-center transition-all duration-700 z-10 ${isUserSpeaking ? 'scale-110 shadow-[0_0_60px_rgba(14,165,233,0.4)]' : 'scale-100 shadow-2xl'}`}>
             <canvas ref={canvasRef} width={200} height={200} className="absolute inset-0 w-full h-full pointer-events-none" />
@@ -260,7 +244,6 @@ export const LiveMode: React.FC<LiveModeProps> = ({ onClose, settings }) => {
               {isUserSpeaking ? <Mic size={40} className="text-white" /> : <Volume2 size={40} className="text-white" />}
             </div>
           </div>
-          
           <div className="w-full min-h-[80px] flex items-center justify-center px-4">
             {error ? (
               <div className="flex items-center gap-3 text-red-400 urdu-text bg-red-500/10 px-6 py-3 rounded-2xl border border-red-500/20">
@@ -274,7 +257,6 @@ export const LiveMode: React.FC<LiveModeProps> = ({ onClose, settings }) => {
             )}
           </div>
         </div>
-
         <div className="flex-1 overflow-y-auto px-6 md:px-12 py-6 space-y-5 no-scrollbar bg-black/20 border-t border-white/5">
           {history.length === 0 && !transcription && (
             <div className="h-full flex flex-col items-center justify-center opacity-10 space-y-4">
@@ -282,40 +264,24 @@ export const LiveMode: React.FC<LiveModeProps> = ({ onClose, settings }) => {
               <p className="urdu-text text-sm md:text-lg">کوئی گفتگو نہیں ہوئی</p>
             </div>
           )}
-          
           {history.map((item, idx) => (
             <div key={idx} className={`flex ${item.role === 'user' ? 'justify-start' : 'justify-end'} animate-in fade-in slide-in-from-bottom-2`}>
               <div className={`max-w-[90%] px-5 py-3 md:py-4 rounded-2xl md:rounded-3xl text-sm md:text-xl urdu-text leading-relaxed shadow-xl ${
-                item.role === 'user' 
-                ? 'bg-slate-800/80 text-sky-100 border border-white/5' 
-                : 'bg-sky-600/30 text-white border border-sky-400/30'
-              }`} dir="rtl">
-                <span className="text-[8px] md:text-[10px] block mb-1.5 opacity-40 uppercase tracking-[0.2em] font-black">
-                  {item.role === 'user' ? 'USER' : 'CHAT GRC'}
-                </span>
-                {item.text}
-              </div>
+                item.role === 'user' ? 'bg-slate-800/80 text-sky-100 border border-white/5' : 'bg-sky-600/30 text-white border border-sky-400/30'
+              }`} dir="rtl">{item.text}</div>
             </div>
           ))}
-
           {transcription && (
             <div className={`flex ${isUserSpeaking ? 'justify-start' : 'justify-end'} animate-in fade-in`}>
               <div className={`max-w-[90%] px-5 py-3 md:py-4 rounded-2xl md:rounded-3xl text-sm md:text-xl urdu-text leading-relaxed ${
                 isUserSpeaking ? 'bg-slate-700/40 text-sky-300 border border-sky-400/10' : 'bg-sky-500/20 text-sky-100 border border-sky-400/20'
-              }`} dir="rtl">
-                {transcription}
-              </div>
+              }`} dir="rtl">{transcription}</div>
             </div>
           )}
           <div ref={historyEndRef} className="h-4" />
         </div>
-
         <div className="p-6 md:p-10 border-t border-white/5 shrink-0 bg-black/60">
            <div className="flex flex-col items-center gap-3">
-              <div className="flex items-center gap-3 text-[9px] md:text-[11px] text-sky-400/80 font-black uppercase tracking-[0.3em]">
-                <ShieldCheck size={14} className="text-sky-400" />
-                <span>Encrypted Research Stream • GRC GLOBAL</span>
-              </div>
               <p className="text-[10px] md:text-[12px] text-slate-500 font-bold uppercase tracking-[0.3em] md:tracking-[0.6em] urdu-text text-center opacity-60">
                 <span className="text-white font-black">Qari Khalid Mahmood</span> Gold Medalist
               </p>
