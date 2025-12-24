@@ -37,7 +37,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onSendFeedback,
   onInstall
 }) => {
-  const [isUpdating, setIsUpdating] = useState(false);
   const [activePopover, setActivePopover] = useState<'about' | 'usage' | null>(null);
 
   const toggleHighContrast = () => setSettings({...settings, highContrast: !settings.highContrast});
@@ -55,33 +54,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
   };
 
   const setFont = (fam: 'naskh' | 'nastaleeq' | 'sans') => setSettings({...settings, fontFamily: fam});
-
-  const handleUpdate = async () => {
-    setIsUpdating(true);
-    try {
-      // 1. Unregister all service workers
-      if ('serviceWorker' in navigator) {
-        const registrations = await navigator.serviceWorker.getRegistrations();
-        for (const registration of registrations) {
-          await registration.unregister();
-        }
-      }
-      
-      // 2. Delete all caches
-      if ('caches' in window) {
-        const keys = await caches.keys();
-        await Promise.all(keys.map(key => caches.delete(key)));
-      }
-
-      // 3. Force hard reload with timestamp to bypass server-side caching
-      setTimeout(() => {
-        window.location.replace(window.location.origin + window.location.pathname + '?v=' + Date.now());
-      }, 500);
-    } catch (e) {
-      console.error("Update failed:", e);
-      window.location.reload();
-    }
-  };
 
   return (
     <>
@@ -193,16 +165,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
                <button onClick={() => setFont('sans')} className={`flex-1 py-2 px-1 rounded-lg text-[10px] urdu-text font-black border transition-all ${settings.fontFamily === 'sans' ? 'bg-white/20 border-white text-white shadow-lg' : 'border-white/5 text-white/40 hover:bg-white/5'}`}>سادہ</button>
             </div>
 
-            <div className="grid grid-cols-2 gap-2">
-              <button 
-                onClick={handleUpdate} 
-                disabled={isUpdating}
-                className={`flex items-center justify-center gap-2 p-3 rounded-xl transition-all active:scale-95 overflow-hidden border ${settings.highContrast ? 'bg-sky-600/10 hover:bg-sky-600/20 text-sky-300 border-sky-600/20' : 'bg-sky-500/10 hover:bg-sky-500/20 text-sky-300 border-sky-500/10'} ${isUpdating ? 'opacity-50' : ''}`}
-              >
-                <RotateCcw size={14} className={`${isUpdating ? 'animate-spin' : ''}`} />
-                <span className="text-[10px] urdu-text font-black">{isUpdating ? 'جاری ہے...' : 'اپڈیٹ'}</span>
-              </button>
-              <button onClick={() => setActivePopover('usage')} className="flex items-center justify-center gap-2 p-3 rounded-xl bg-white/5 hover:bg-white/10 text-white/60 border border-white/5 transition-all active:scale-95">
+            <div className="w-full">
+              <button onClick={() => setActivePopover('usage')} className="w-full flex items-center justify-center gap-2 p-3 rounded-xl bg-white/5 hover:bg-white/10 text-white/60 border border-white/5 transition-all active:scale-95">
                 <HelpCircle size={14} />
                 <span className="text-[10px] urdu-text font-black">رہنمائی</span>
               </button>
