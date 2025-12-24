@@ -59,6 +59,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const handleUpdate = async () => {
     setIsUpdating(true);
     try {
+      // 1. Unregister all service workers
       if ('serviceWorker' in navigator) {
         const registrations = await navigator.serviceWorker.getRegistrations();
         for (const registration of registrations) {
@@ -66,15 +67,18 @@ export const Sidebar: React.FC<SidebarProps> = ({
         }
       }
       
+      // 2. Delete all caches
       if ('caches' in window) {
         const keys = await caches.keys();
         await Promise.all(keys.map(key => caches.delete(key)));
       }
 
+      // 3. Force hard reload with timestamp to bypass server-side caching
       setTimeout(() => {
-        window.location.href = window.location.origin + window.location.pathname + '?v=' + Date.now();
-      }, 1000);
+        window.location.replace(window.location.origin + window.location.pathname + '?v=' + Date.now());
+      }, 500);
     } catch (e) {
+      console.error("Update failed:", e);
       window.location.reload();
     }
   };
@@ -204,6 +208,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
               </button>
             </div>
 
+            <button onClick={() => setActivePopover('about')} className="w-full flex items-center gap-3 px-4 py-3 text-xs rounded-xl transition-all text-white bg-white/5 hover:bg-white/10 border border-white/10 active:scale-[0.98]">
+              <Info size={16} className="text-sky-300" />
+              <span className="urdu-text flex-1 text-right font-black" dir="rtl">تعارف (About)</span>
+            </button>
+
             <button onClick={onSendFeedback} className="w-full flex items-center gap-3 px-4 py-3 text-xs rounded-xl transition-all text-white bg-[#25D366]/20 hover:bg-[#25D366]/30 border border-[#25D366]/20 active:scale-[0.98]">
               <MessageCircle size={16} className="text-[#25D366]" />
               <span className="urdu-text flex-1 text-right font-black" dir="rtl">رائے دیں (WhatsApp)</span>
@@ -216,19 +225,22 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </div>
 
           {activePopover && (
-            <div className={`absolute inset-0 z-50 animate-in slide-in-from-bottom-full duration-500 flex flex-col ${settings.highContrast ? 'bg-slate-900' : 'bg-[#0c4a6e]'}`}>
-              <div className="p-6 border-b border-white/10 flex items-center justify-between">
-                <button onClick={() => setActivePopover(null)} className="p-2 hover:bg-white/10 rounded-full text-white">
+            <div className={`absolute inset-0 z-50 animate-in slide-in-from-bottom-full duration-500 flex flex-col shadow-2xl ${settings.highContrast ? 'bg-slate-900' : 'bg-[#0c4a6e]'}`}>
+              <div className={`p-5 border-b flex items-center justify-between ${settings.highContrast ? 'border-slate-800' : 'border-white/10'}`}>
+                <button onClick={() => setActivePopover(null)} className="p-2 hover:bg-white/10 rounded-full text-white transition-all active:scale-90">
                   <X size={24} />
                 </button>
-                <h3 className="text-xl font-black urdu-text text-white">
-                  {activePopover === 'usage' ? 'طریقہ استعمال' : 'تعارف'}
+                <h3 className="text-lg font-black urdu-text text-white">
+                  {activePopover === 'usage' ? 'طریقہ استعمال' : 'Urdu AI کا تعارف'}
                 </h3>
               </div>
-              <div className="flex-1 overflow-y-auto p-8 prose prose-invert">
-                <p className="urdu-text text-lg leading-relaxed text-right text-sky-100" dir="rtl">
+              <div className="flex-1 overflow-y-auto p-6 md:p-8 no-scrollbar">
+                <div className="urdu-text text-base md:text-lg leading-[2] text-right text-sky-100 whitespace-pre-wrap" dir="rtl">
                   {activePopover === 'usage' ? USAGE_PROCEDURE_TEXT : ABOUT_TEXT}
-                </p>
+                </div>
+              </div>
+              <div className="p-6 border-t border-white/10 flex justify-center">
+                <button onClick={() => setActivePopover(null)} className="px-8 py-3 bg-white text-[#0c4a6e] font-black rounded-xl urdu-text transition-all active:scale-95 shadow-xl">سمجھ گیا</button>
               </div>
             </div>
           )}
