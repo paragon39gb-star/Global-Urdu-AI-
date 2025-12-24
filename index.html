@@ -79,10 +79,13 @@
             color: inherit !important;
             max-width: none;
         }
-        .prose strong { color: inherit !important; font-weight: 800; }
+        .prose strong { color: inherit !important; font-weight: 900; }
         .prose h1, .prose h2, .prose h3 { color: var(--text-accent) !important; font-weight: 900; }
-        .prose a { color: var(--text-accent) !important; text-decoration: underline; font-weight: bold; }
-
+        .prose p { margin-top: 0.5em; margin-bottom: 0.5em; }
+        .prose ul, .prose ol { padding-right: 1.5rem; padding-left: 0; }
+        .prose li { margin-top: 0.25em; margin-bottom: 0.25em; }
+        .prose code { background-color: rgba(0,0,0,0.05); padding: 0.2em 0.4em; border-radius: 4px; font-family: var(--font-english); }
+        
         .glass-header {
             background: rgba(3, 105, 161, 0.95);
             backdrop-filter: blur(10px);
@@ -98,6 +101,7 @@
         }
         body.high-contrast .prose { color: #f8fafc !important; }
         body.high-contrast .prose h1, body.high-contrast .prose h2, body.high-contrast .prose h3 { color: #38bdf8 !important; }
+        body.high-contrast .prose code { background-color: rgba(255,255,255,0.1); color: #38bdf8; }
     </style>
 <script type="importmap">
 {
