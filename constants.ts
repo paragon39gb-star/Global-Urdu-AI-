@@ -1,5 +1,5 @@
 
-export const APP_VERSION = "4.5.0";
+export const APP_VERSION = "5.0.0";
 export const GEMINI_MODEL_VERSION = "Chat GRC - Turbo Research Engine";
 
 export const SYSTEM_PROMPT = `
@@ -32,6 +32,24 @@ export const SUGGESTIONS = [
   { ur: "بچوں کے لیے حضرت خالد بن ولیدؓ کی بہادری", en: "Khalid bin Walid story for kids" },
   { ur: "جامعہ بنوریہ کا فتویٰ برائے زکوٰۃ", en: "Zakat Fatwa Jamia Binoria" },
   { ur: "حیات الصحابہ سے کوئی اخلاقی واقعہ", en: "Moral story from Hayat al-Sahaba" }
+];
+
+export const UNIQUENESS_POINTS = [
+  {
+    title: "مستند حوالہ جات",
+    desc: "صرف جواب نہیں، بلکہ معتبر کتب اور فتاویٰ کے مکمل حوالے (جلد اور صفحہ نمبر کے ساتھ) فراہم کرتا ہے۔",
+    icon: "BookOpen"
+  },
+  {
+    title: "فقہی مہارت",
+    desc: "جدید مسائل کا حل مستند دارالافتاء کی روشنی میں فراہم کرنے کی خصوصی تربیت دی گئی ہے۔",
+    icon: "Scale"
+  },
+  {
+    title: "بچوں کی تربیت",
+    desc: "بچوں کے لیے خاص طور پر ڈیزائن کردہ کہانیاں جو مستند اسلامی تاریخ سے ماخوذ ہیں اور اخلاقی سبق دیتی ہیں۔",
+    icon: "Heart"
+  }
 ];
 
 export const NEWS_PROMPT = `گوگل سرچ استعمال کرتے ہوئے آج کی تازہ ترین خبریں تلاش کریں اور اردو میں ایک جامع خلاصہ پیش کریں۔`;

@@ -1,20 +1,19 @@
 
-const CACHE_NAME = 'chat-grc-v4.5.0';
+const CACHE_NAME = 'chat-grc-v4.7.0';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
   '/index.tsx',
-  '/manifest.json',
   'https://img.icons8.com/fluency/96/sparkling-light.png'
 ];
 
 self.addEventListener('install', (event) => {
+  self.skipWaiting();
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
       return cache.addAll(ASSETS_TO_CACHE);
     })
   );
-  self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {
@@ -33,18 +32,22 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
-  if (event.request.mode === 'navigate') {
-    event.respondWith(
-      fetch(event.request).catch(() => {
-        return caches.match('/');
-      })
-    );
-    return;
+  const url = event.request.url;
+
+  // CRITICAL: Always skip cache for API requests to Google Generative AI
+  if (url.includes('generativelanguage.googleapis.com')) {
+    return; 
   }
 
+  // Network-first strategy for everything else to ensure stability
   event.respondWith(
-    caches.match(event.request).then((response) => {
-      return response || fetch(event.request);
+    fetch(event.request).catch(() => {
+      return caches.match(event.request).then((response) => {
+        if (response) return response;
+        if (event.request.mode === 'navigate') {
+          return caches.match('/');
+        }
+      });
     })
   );
 });

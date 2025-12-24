@@ -1,6 +1,6 @@
 
 import React, { useMemo, useState, useRef, useEffect } from 'react';
-import { Sparkles, User, Copy, Check, ExternalLink, FileText, Share2, Download, Volume2, VolumeX, Play, Pause, Square, Loader2 } from 'lucide-react';
+import { Sparkles, User, Copy, Check, ExternalLink, Share2, Volume2, Play, Pause, Square, Loader2 } from 'lucide-react';
 import { Message, UserSettings } from '../types';
 import { marked } from 'marked';
 import { chatGRC } from '../services/geminiService';
@@ -60,7 +60,6 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, settings 
       } catch (err) {}
     } else {
       handleCopy();
-      alert("متن کاپی کر لیا گیا ہے۔");
     }
   };
 
@@ -130,35 +129,37 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, settings 
   };
 
   return (
-    <div className={`w-full py-4 md:py-8 px-3 md:px-12 flex flex-col md:flex-row gap-3 md:gap-8 animate-bubble ${isAssistant ? 'bg-sky-500/[0.03] rounded-3xl md:rounded-[2.5rem] border border-sky-400/10' : ''}`}>
+    <div className={`w-full py-5 md:py-12 px-4 md:px-14 flex flex-col md:flex-row gap-4 md:gap-12 animate-bubble border border-white/5 shadow-xl ${isAssistant ? 'bg-white/5 rounded-[1.8rem] md:rounded-[4rem]' : 'bg-sky-500/10 rounded-[1.8rem] md:rounded-[4rem] border-sky-400/20'}`}>
       
-      <div className="flex shrink-0 gap-3 items-start md:mt-1">
-         <div className={`w-9 h-9 md:w-14 md:h-14 rounded-xl flex items-center justify-center shrink-0 border transition-all ${isAssistant ? 'bg-gradient-to-br from-sky-600 to-sky-400 border-sky-300/30' : 'bg-slate-800 border-white/10 shadow-xl'}`}>
-            {isAssistant ? <Sparkles size={16} className="text-white md:w-8 md:h-8" /> : <User size={16} className="text-white md:w-8 md:h-8" />}
+      <div className="flex shrink-0 gap-3 items-start md:mt-2">
+         <div className={`w-10 h-10 md:w-16 md:h-16 rounded-2xl flex items-center justify-center shrink-0 border-2 transition-all ${isAssistant ? 'bg-sky-600 border-sky-400' : 'bg-slate-700 border-slate-600'}`}>
+            {isAssistant ? <Sparkles size={20} className="text-white md:w-8 md:h-8" /> : <User size={20} className="text-white md:w-8 md:h-8" />}
           </div>
           <div className="md:hidden flex flex-col justify-center">
-             <div className="font-bold text-[9px] text-sky-400 uppercase tracking-widest">
-                {isAssistant ? 'Chat GRC' : 'Authorized User'}
+             <div className="font-bold text-[10px] text-slate-500 uppercase tracking-widest">
+                {isAssistant ? 'Chat GRC' : 'صارف'}
              </div>
           </div>
       </div>
 
-      <div className="flex-1 space-y-3 md:space-y-6 overflow-hidden">
+      <div className="flex-1 space-y-4 md:space-y-8 overflow-hidden">
         <div 
-          className={`prose prose-invert max-w-none break-words leading-relaxed md:leading-relaxed ${isUrdu ? 'urdu-text text-right' : 'text-left'} prose-headings:text-white prose-strong:text-sky-300 prose-code:bg-black/40 prose-code:px-2 prose-code:rounded prose-pre:bg-black/60 prose-pre:rounded-2xl text-slate-100`}
+          className={`prose max-w-none break-words leading-[1.8] md:leading-[2.2] ${isUrdu ? 'urdu-text text-right' : 'text-left'} prose-invert text-slate-200`}
           style={{ 
-            fontSize: settings.fontSize === 'large' ? (isUrdu ? '1.3rem' : '1.2rem') : (isUrdu ? '1.1rem' : '1.0rem')
+            fontSize: settings.fontSize === 'large' 
+              ? (window.innerWidth < 768 ? (isUrdu ? '1.25rem' : '1.15rem') : (isUrdu ? '1.8rem' : '1.5rem'))
+              : (window.innerWidth < 768 ? (isUrdu ? '1.05rem' : '0.95rem') : (isUrdu ? '1.4rem' : '1.2rem'))
           }}
           dir={isUrdu ? 'rtl' : 'ltr'}
           dangerouslySetInnerHTML={{ __html: htmlContent }}
         />
 
         {sources.length > 0 && (
-          <div className="mt-4 p-4 md:p-8 glass-panel rounded-2xl border-sky-400/20 bg-sky-500/5 shadow-inner">
-            <h4 className="text-[10px] md:text-sm font-bold text-sky-300 urdu-text mb-3 md:mb-5">تصدیق شدہ مآخذ (Sources):</h4>
+          <div className="mt-4 p-5 md:p-10 bg-black/40 rounded-2xl md:rounded-3xl border border-white/10 shadow-inner">
+            <h4 className="text-[11px] md:text-lg font-bold text-sky-400 urdu-text mb-3 md:mb-5 border-r-2 border-sky-400 pr-3">تحقیق کے مستند مآخذ:</h4>
             <div className="flex flex-wrap gap-2 md:gap-4">
               {sources.map((s, idx) => (
-                <a key={idx} href={s.uri} target="_blank" rel="noopener noreferrer" className="px-3 py-2 bg-black/50 hover:bg-black/70 rounded-lg text-[9px] md:text-xs text-sky-200 border border-white/5 transition-all truncate max-w-[150px] md:max-w-[300px]">
+                <a key={idx} href={s.uri} target="_blank" rel="noopener noreferrer" className="px-3 py-1.5 md:px-5 md:py-3 bg-white/5 hover:bg-sky-500/10 rounded-xl text-[10px] md:text-sm text-sky-200 border border-white/10 truncate max-w-[140px] md:max-w-[300px] transition-all font-medium">
                   {s.title}
                 </a>
               ))}
@@ -167,32 +168,31 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, settings 
         )}
 
         {isAssistant && message.content && (
-          <div className="pt-3 flex flex-wrap items-center gap-2 md:gap-3 opacity-100 md:opacity-0 group-hover:opacity-100 transition-all duration-300">
-            <button onClick={handleCopy} className="p-2.5 md:p-3 bg-white/5 hover:bg-white/10 rounded-xl transition-all border border-white/5 active:scale-90" title="کاپی">
-              {copied ? <Check size={14} className="text-emerald-400" /> : <Copy size={14} />}
+          <div className="pt-3 flex flex-wrap items-center gap-3 md:gap-5 border-t border-white/5">
+            <button onClick={handleCopy} className="p-2.5 md:p-3.5 text-slate-400 hover:text-sky-400 hover:bg-white/5 rounded-xl transition-all active:scale-90" title="کاپی">
+              {copied ? <Check size={18} md:size={22} className="text-emerald-500" /> : <Copy size={18} md:size={22} />}
             </button>
             
-            <div className="flex items-center bg-sky-600/10 rounded-xl border border-sky-500/20 p-1">
+            <div className="flex items-center bg-white/5 rounded-xl md:rounded-2xl p-0.5 md:p-1 border border-white/10">
               <button 
                 onClick={handleSpeak} 
                 disabled={audioState === 'loading'} 
-                className={`flex items-center gap-2 px-3 md:px-5 py-1.5 md:py-2 rounded-lg transition-all text-[10px] md:text-sm font-bold urdu-text ${audioState !== 'idle' ? 'text-sky-300 bg-sky-500/20' : 'text-sky-100 hover:text-white hover:bg-white/5'}`}
+                className={`flex items-center gap-2 md:gap-3 px-3 py-2 md:px-6 md:py-3 rounded-lg md:rounded-xl transition-all text-[11px] md:text-lg font-bold urdu-text ${audioState !== 'idle' ? 'text-sky-400 bg-white/10' : 'text-slate-400'}`}
               >
                 {audioState === 'loading' ? <Loader2 size={14} className="animate-spin" /> : 
-                 audioState === 'playing' ? <Pause size={14} /> : 
-                 audioState === 'paused' ? <Play size={14} /> : <Volume2 size={14} />}
-                <span>{audioState === 'loading' ? 'تیار...' : audioState === 'playing' ? 'روکیں' : 'آڈیو'}</span>
+                 audioState === 'playing' ? <Pause size={14} md:size={18} /> : <Volume2 size={14} md:size={18} />}
+                <span>{audioState === 'loading' ? 'لوڈنگ...' : audioState === 'playing' ? 'روکیں' : 'سنیں'}</span>
               </button>
               
               {audioState !== 'idle' && (
-                <button onClick={stopAudio} className="p-2 text-red-400 hover:text-red-300 transition-colors">
-                  <Square size={12} fill="currentColor" />
+                <button onClick={stopAudio} className="p-2 md:p-3 text-red-400 hover:bg-white/10 rounded-lg ml-1">
+                  <Square size={12} md:size={16} fill="currentColor" />
                 </button>
               )}
             </div>
 
-            <button onClick={handleShare} className="p-2.5 md:p-3 bg-white/5 hover:bg-white/10 rounded-xl transition-all border border-white/5 active:scale-90" title="شیئر">
-              <Share2 size={14} />
+            <button onClick={handleShare} className="p-2.5 md:p-3.5 text-slate-400 hover:text-sky-400 hover:bg-white/5 rounded-xl transition-all" title="شیئر">
+              <Share2 size={18} md:size={22} />
             </button>
           </div>
         )}
