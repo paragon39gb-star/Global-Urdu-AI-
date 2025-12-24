@@ -1,10 +1,9 @@
 
 import React, { useMemo, useState, useRef, useEffect } from 'react';
-/* Added Loader2 to imports to fix the error on line 181 */
 import { Sparkles, User, Copy, Check, ExternalLink, FileText, Share2, Download, Volume2, VolumeX, Play, Pause, Square, Loader2 } from 'lucide-react';
 import { Message, UserSettings } from '../types';
 import { marked } from 'marked';
-import { urduAI } from '../services/geminiService';
+import { chatGRC } from '../services/geminiService';
 
 interface MessageBubbleProps {
   message: Message;
@@ -85,7 +84,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, settings 
     }
 
     setAudioState('loading');
-    const base64Audio = await urduAI.textToSpeech(message.content, settings.voiceName);
+    const base64Audio = await chatGRC.textToSpeech(message.content, settings.voiceName);
     
     if (base64Audio) {
       try {

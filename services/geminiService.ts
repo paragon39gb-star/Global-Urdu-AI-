@@ -2,7 +2,7 @@
 import { GoogleGenAI, GenerateContentResponse, Chat, Modality, LiveServerMessage } from "@google/genai";
 import { SYSTEM_PROMPT } from "../constants";
 
-class UrduAIService {
+class ChatGRCService {
   private chatInstance: Chat | null = null;
   private currentModel: string | null = null;
   private imageModel = 'gemini-2.5-flash-image';
@@ -85,7 +85,7 @@ class UrduAIService {
       }
       return fullText;
     } catch (error) {
-      console.error("UrduAI Stream Error:", error);
+      console.error("Chat GRC Stream Error:", error);
       this.resetChat();
       throw error;
     }
@@ -116,7 +116,7 @@ class UrduAIService {
     return ai.live.connect({
       model: 'gemini-2.5-flash-native-audio-preview-09-2025',
       callbacks: {
-        onopen: () => console.log("Live Node Connected"),
+        onopen: () => console.log("Chat GRC Live Connected"),
         onmessage: async (message: LiveServerMessage) => {
           const part = message.serverContent?.modelTurn?.parts?.[0];
           if (part?.inlineData?.data) callbacks.onAudio(part.inlineData.data);
@@ -144,4 +144,4 @@ class UrduAIService {
   }
 }
 
-export const urduAI = new UrduAIService();
+export const chatGRC = new ChatGRCService();

@@ -5,7 +5,7 @@ import { ChatArea } from './components/ChatArea';
 import { LiveMode } from './components/LiveMode';
 import { LoginModal } from './components/LoginModal';
 import { ChatSession, Message, Attachment, UserSettings, User } from './types';
-import { urduAI } from './services/geminiService';
+import { chatGRC } from './services/geminiService';
 import { NEWS_PROMPT, AI_UPDATES_PROMPT } from './constants';
 
 const App: React.FC = () => {
@@ -48,7 +48,7 @@ const App: React.FC = () => {
         try {
           const parsed = JSON.parse(saved);
           setSessions(parsed);
-          if (parsed.length > 0) { setCurrentSessionId(parsed[0].id); urduAI.resetChat(); }
+          if (parsed.length > 0) { setCurrentSessionId(parsed[0].id); chatGRC.resetChat(); }
           else createNewChat();
         } catch (e) { createNewChat(); }
       } else createNewChat();
@@ -91,7 +91,7 @@ const App: React.FC = () => {
       const sessionForHistory = sessions.find(s => s.id === sessionId);
       const history = sessionForHistory ? [...sessionForHistory.messages, userMsg] : [userMsg];
       
-      await urduAI.sendMessageStream(text, selectedModel, history, attachments, customInstructions, (full, sources) => {
+      await chatGRC.sendMessageStream(text, selectedModel, history, attachments, customInstructions, (full, sources) => {
         setSessions(prev => prev.map(s => {
           if (s.id === sessionId) {
             const msgs = [...s.messages];
@@ -110,7 +110,7 @@ const App: React.FC = () => {
   };
 
   const handleRefreshContext = () => {
-    urduAI.resetChat();
+    chatGRC.resetChat();
   };
 
   const handleFetchNews = () => {
@@ -120,7 +120,7 @@ const App: React.FC = () => {
     const fullNewsPrompt = `${NEWS_PROMPT}\n\nآج کی اصل سسٹم تاریخ: ${dateStr}`;
     const newId = Date.now().toString();
     setCurrentSessionId(newId);
-    urduAI.resetChat();
+    chatGRC.resetChat();
     handleSendMessage(fullNewsPrompt, [], newId);
   };
 
@@ -128,7 +128,7 @@ const App: React.FC = () => {
     if (isLoading) return;
     const newId = Date.now().toString();
     setCurrentSessionId(newId);
-    urduAI.resetChat();
+    chatGRC.resetChat();
     handleSendMessage(AI_UPDATES_PROMPT, [], newId);
   };
 
@@ -136,7 +136,7 @@ const App: React.FC = () => {
     const newSession: ChatSession = { id: Date.now().toString(), title: 'نئی گفتگو', messages: [], createdAt: Date.now(), updatedAt: Date.now(), model: selectedModel };
     setSessions(prev => [newSession, ...prev]);
     setCurrentSessionId(newSession.id);
-    urduAI.resetChat();
+    chatGRC.resetChat();
     setIsImageMode(false);
     if (window.innerWidth < 1024) setIsSidebarOpen(false);
   }, [selectedModel]);
@@ -146,7 +146,7 @@ const App: React.FC = () => {
     setSessions(filtered);
     if (currentSessionId === id) {
       setCurrentSessionId(filtered[0]?.id || null);
-      urduAI.resetChat();
+      chatGRC.resetChat();
     }
   };
 
@@ -154,7 +154,7 @@ const App: React.FC = () => {
     <div className={`flex w-full overflow-hidden ${settings.fontFamily === 'nastaleeq' ? 'urdu-nastaleeq' : 'urdu-sans'}`} style={{ height: 'calc(var(--vh, 1vh) * 100)' }}>
       {isSidebarOpen && <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-30 lg:hidden" onClick={() => setIsSidebarOpen(false)} />}
       <Sidebar 
-        sessions={sessions} activeId={currentSessionId} onSelect={(id) => { urduAI.resetChat(); setCurrentSessionId(id); if(window.innerWidth < 1024) setIsSidebarOpen(false); }} 
+        sessions={sessions} activeId={currentSessionId} onSelect={(id) => { chatGRC.resetChat(); setCurrentSessionId(id); if(window.innerWidth < 1024) setIsSidebarOpen(false); }} 
         onNewChat={createNewChat} onDelete={deleteChat} isOpen={isSidebarOpen} 
         setIsOpen={setIsSidebarOpen} customInstructions={customInstructions} 
         setCustomInstructions={setCustomInstructions} settings={settings} setSettings={setSettings} 
@@ -173,7 +173,7 @@ const App: React.FC = () => {
           onStartVoice={() => setShowLiveMode(true)}
           isLoading={isLoading}
           selectedModel={selectedModel}
-          onModelChange={(m) => { setSelectedModel(m); urduAI.resetChat(); }}
+          onModelChange={(m) => { setSelectedModel(m); chatGRC.resetChat(); }}
           settings={settings}
           onToggleSidebar={() => setIsSidebarOpen(true)}
           onRefreshContext={handleRefreshContext}

@@ -1,7 +1,7 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import { Mic, X, Volume2, AlertCircle, ShieldCheck, MessageSquare } from 'lucide-react';
-import { urduAI } from '../services/geminiService';
+import { chatGRC } from '../services/geminiService';
 import { UserSettings } from '../types';
 
 interface LiveModeProps {
@@ -127,7 +127,7 @@ export const LiveMode: React.FC<LiveModeProps> = ({ onClose, settings }) => {
       outputNodeRef.current = outputCtx.createGain();
       outputNodeRef.current.connect(outputCtx.destination);
 
-      const sessionPromise = urduAI.connectLive({
+      const sessionPromise = chatGRC.connectLive({
         voiceName: settings.voiceName,
         callbacks: {
           onAudio: async (base64) => {
