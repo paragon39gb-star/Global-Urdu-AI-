@@ -237,11 +237,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
                </button>
             )}
             
-            <div className="pt-4 flex flex-col items-center gap-2 opacity-100 border-t border-white/5 mt-2">
-               <div className="text-[20px] text-center text-sky-400 font-black uppercase tracking-[0.2em] drop-shadow-sm">
+            <div className="pt-4 flex flex-col items-center gap-1.5 opacity-100 border-t border-white/5 mt-2">
+               <div className="text-sm text-center text-sky-400 font-black uppercase tracking-[0.2em] drop-shadow-sm">
                   Global Research Centre
                </div>
-               <div className="text-[24px] text-center text-white urdu-text font-black">
+               <div className="text-base text-center text-white urdu-text font-black">
                   از <span className="text-yellow-400 font-black">قاری خالد محمود</span>
                </div>
             </div>
