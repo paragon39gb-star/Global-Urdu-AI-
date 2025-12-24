@@ -7,9 +7,14 @@ class ChatGRCService {
   private currentModel: string | null = null;
 
   private initializeChat(model: string, history: any[] = [], customInstructions?: string) {
-    // Correct way to initialize: use process.env.API_KEY directly
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     
+    // Inject current date into system prompt
+    const now = new Date();
+    const dateStr = now.toLocaleDateString('ur-PK', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+    const timeStr = now.toLocaleTimeString('ur-PK');
+    const updatedSystemPrompt = `${SYSTEM_PROMPT}\n\nموجودہ وقت اور تاریخ: ${dateStr}، وقت: ${timeStr}`;
+
     const geminiHistory = history.map(msg => ({
       role: msg.role === 'user' ? 'user' : 'model',
       parts: [
@@ -28,9 +33,9 @@ class ChatGRCService {
       model: model,
       history: geminiHistory,
       config: {
-        systemInstruction: (customInstructions ? `${SYSTEM_PROMPT}\n\nUSER CUSTOM INSTRUCTIONS:\n${customInstructions}` : SYSTEM_PROMPT),
-        temperature: 0.35,
-        topP: 0.9,
+        systemInstruction: (customInstructions ? `${updatedSystemPrompt}\n\nUSER CUSTOM INSTRUCTIONS:\n${customInstructions}` : updatedSystemPrompt),
+        temperature: 0.7, // Slightly higher for faster-feeling conversational flow
+        topP: 0.95,
         tools: [{ googleSearch: {} }],
         thinkingConfig: model.includes('pro') ? { thinkingBudget: 32768 } : undefined
       }

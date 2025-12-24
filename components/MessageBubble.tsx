@@ -1,6 +1,6 @@
 
 import React, { useMemo, useState, useRef, useEffect } from 'react';
-import { Sparkles, User, Copy, Check, ExternalLink, Share2, Volume2, Play, Pause, Square, Loader2 } from 'lucide-react';
+import { Sparkles, User, Copy, Check, Share2, Volume2, Pause, Loader2, Award, ExternalLink } from 'lucide-react';
 import { Message, UserSettings } from '../types';
 import { marked } from 'marked';
 import { chatGRC } from '../services/geminiService';
@@ -129,70 +129,85 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, settings 
   };
 
   return (
-    <div className={`w-full py-5 md:py-12 px-4 md:px-14 flex flex-col md:flex-row gap-4 md:gap-12 animate-bubble border border-white/5 shadow-xl ${isAssistant ? 'bg-white/5 rounded-[1.8rem] md:rounded-[4rem]' : 'bg-sky-500/10 rounded-[1.8rem] md:rounded-[4rem] border-sky-400/20'}`}>
-      
-      <div className="flex shrink-0 gap-3 items-start md:mt-2">
-         <div className={`w-10 h-10 md:w-16 md:h-16 rounded-2xl flex items-center justify-center shrink-0 border-2 transition-all ${isAssistant ? 'bg-sky-600 border-sky-400' : 'bg-slate-700 border-slate-600'}`}>
-            {isAssistant ? <Sparkles className="text-white w-5 h-5 md:w-8 md:h-8" /> : <User className="text-white w-5 h-5 md:w-8 md:h-8" />}
-          </div>
-          <div className="md:hidden flex flex-col justify-center">
-             <div className="font-bold text-[10px] text-slate-500 uppercase tracking-widest">
-                {isAssistant ? 'Chat GRC' : 'صارف'}
-             </div>
-          </div>
+    <div className={`w-full flex gap-3 md:gap-4 px-1 py-2 animate-bubble ${isAssistant ? 'justify-start' : 'flex-row-reverse'}`}>
+      {/* Icon Wrapper */}
+      <div className={`w-9 h-9 md:w-11 md:h-11 rounded-2xl flex items-center justify-center shrink-0 shadow-lg border-2 transition-transform duration-300 hover:scale-105 ${isAssistant ? 'bg-gradient-to-br from-[#0369a1] to-[#075985] border-white/20' : 'bg-white border-slate-200'}`}>
+        {isAssistant ? <Sparkles className="text-white w-5 h-5" /> : <User className="text-[#0369a1] w-5 h-5" />}
       </div>
 
-      <div className="flex-1 space-y-4 md:space-y-8 overflow-hidden">
+      <div className={`flex flex-col space-y-2 max-w-[88%] md:max-w-[82%] ${isAssistant ? 'items-start' : 'items-end'}`}>
+        {/* Label Row */}
+        {isAssistant && (
+          <div className="flex items-center gap-2 mb-1 px-1">
+             <span className="text-[11px] md:text-[13px] font-black urdu-text text-[#075985] uppercase tracking-wide">تحقیقی رپورٹ • Chat GRC</span>
+             <Award className="w-3.5 h-3.5 text-yellow-600" />
+          </div>
+        )}
+        
+        {/* Main Content Bubble */}
         <div 
-          className={`prose max-w-none break-words leading-[1.8] md:leading-[2.2] ${isUrdu ? 'urdu-text text-right' : 'text-left'} prose-invert text-slate-200`}
+          className={`break-words overflow-hidden rounded-2xl shadow-xl transition-all duration-300 ${isUrdu ? 'urdu-text text-right font-medium' : 'text-left'} ${
+            isAssistant 
+              ? 'bg-white text-black border border-slate-200 rounded-tl-none ring-1 ring-slate-100' 
+              : 'bg-gradient-to-br from-[#0c4a6e] to-[#0369a1] text-white border border-white/10 rounded-tr-none shadow-[#0369a1]/10 font-bold'
+          }`}
           style={{ 
-            fontSize: settings.fontSize === 'large' 
-              ? (window.innerWidth < 768 ? (isUrdu ? '1.25rem' : '1.15rem') : (isUrdu ? '1.8rem' : '1.5rem'))
-              : (window.innerWidth < 768 ? (isUrdu ? '1.05rem' : '0.95rem') : (isUrdu ? '1.4rem' : '1.2rem'))
+            fontSize: settings.fontSize === 'large' ? '1.2rem' : '1.05rem',
+            lineHeight: isUrdu ? '1.8' : '1.6'
           }}
           dir={isUrdu ? 'rtl' : 'ltr'}
-          dangerouslySetInnerHTML={{ __html: htmlContent }}
-        />
+        >
+          <div 
+            className={`prose prose-slate prose-sm md:prose-base max-w-none px-4 md:px-6 py-3.5 md:py-4 ${isAssistant ? 'prose-headings:text-[#0c4a6e] prose-headings:font-black' : 'prose-headings:text-white text-white'}`}
+            dangerouslySetInnerHTML={{ __html: htmlContent }}
+          />
+        </div>
 
+        {/* Sources Section */}
         {sources.length > 0 && (
-          <div className="mt-4 p-5 md:p-10 bg-black/40 rounded-2xl md:rounded-3xl border border-white/10 shadow-inner">
-            <h4 className="text-[11px] md:text-lg font-bold text-sky-400 urdu-text mb-3 md:mb-5 border-r-2 border-sky-400 pr-3">تحقیق کے مستند مآخذ:</h4>
-            <div className="flex flex-wrap gap-2 md:gap-4">
+          <div className="w-full mt-3 bg-slate-50 border border-slate-200 rounded-xl p-3 shadow-inner" dir="rtl">
+            <div className="flex items-center gap-2 mb-2">
+              <div className="w-1.5 h-1.5 rounded-full bg-[#0369a1]"></div>
+              <p className="text-[11px] md:text-[13px] font-black text-[#0c4a6e] urdu-text">مستند مآخذ و مراجِع:</p>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
               {sources.map((s, idx) => (
-                <a key={idx} href={s.uri} target="_blank" rel="noopener noreferrer" className="px-3 py-1.5 md:px-5 md:py-3 bg-white/5 hover:bg-sky-500/10 rounded-xl text-[10px] md:text-sm text-sky-200 border border-white/10 truncate max-w-[140px] md:max-w-[300px] transition-all font-medium">
-                  {s.title}
+                <a 
+                  key={idx} 
+                  href={s.uri} 
+                  target="_blank" 
+                  rel="noopener noreferrer" 
+                  className="flex items-center justify-between px-3 py-2 bg-white hover:bg-slate-100 rounded-lg text-[10px] md:text-[12px] text-[#0369a1] border border-slate-200 transition-all group"
+                >
+                  <span className="truncate flex-1 text-right font-bold ml-2">{s.title}</span>
+                  <ExternalLink className="w-3 h-3 opacity-40 group-hover:opacity-100 shrink-0" />
                 </a>
               ))}
             </div>
           </div>
         )}
 
+        {/* Assistant Action Buttons */}
         {isAssistant && message.content && (
-          <div className="pt-3 flex flex-wrap items-center gap-3 md:gap-5 border-t border-white/5">
-            <button onClick={handleCopy} className="p-2.5 md:p-3.5 text-slate-400 hover:text-sky-400 hover:bg-white/5 rounded-xl transition-all active:scale-90" title="کاپی">
-              {copied ? <Check className="w-4 h-4 md:w-5 md:h-5 text-emerald-500" /> : <Copy className="w-4 h-4 md:w-5 md:h-5" />}
+          <div className="flex items-center gap-3 pt-2 px-1">
+            <button 
+              onClick={handleSpeak} 
+              disabled={audioState === 'loading'} 
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl transition-all text-[11px] md:text-[13px] font-black urdu-text shadow-sm active:scale-95 ${audioState !== 'idle' ? 'bg-[#0369a1] text-white' : 'bg-white text-[#0369a1] border border-slate-200 hover:border-[#0369a1] hover:bg-slate-50'}`}
+            >
+              {audioState === 'loading' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : 
+               audioState === 'playing' ? <Pause className="w-3.5 h-3.5 fill-current" /> : <Volume2 className="w-3.5 h-3.5" />}
+              <span>{audioState === 'playing' ? 'روکیں' : 'آواز'}</span>
+            </button>
+
+            <div className="h-4 w-[1px] bg-slate-200 mx-1"></div>
+
+            <button onClick={handleCopy} className="p-2 text-slate-400 hover:text-[#0369a1] hover:bg-slate-100 rounded-xl transition-all active:scale-90" title="کاپی">
+              {copied ? <Check className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4" />}
             </button>
             
-            <div className="flex items-center bg-white/5 rounded-xl md:rounded-2xl p-0.5 md:p-1 border border-white/10">
-              <button 
-                onClick={handleSpeak} 
-                disabled={audioState === 'loading'} 
-                className={`flex items-center gap-2 md:gap-3 px-3 py-2 md:px-6 md:py-3 rounded-lg md:rounded-xl transition-all text-[11px] md:text-lg font-bold urdu-text ${audioState !== 'idle' ? 'text-sky-400 bg-white/10' : 'text-slate-400'}`}
-              >
-                {audioState === 'loading' ? <Loader2 size={14} className="animate-spin" /> : 
-                 audioState === 'playing' ? <Pause className="w-4 h-4 md:w-5 md:h-5" /> : <Volume2 className="w-4 h-4 md:w-5 md:h-5" />}
-                <span>{audioState === 'loading' ? 'لوڈنگ...' : audioState === 'playing' ? 'روکیں' : 'سنیں'}</span>
-              </button>
-              
-              {audioState !== 'idle' && (
-                <button onClick={stopAudio} className="p-2 md:p-3 text-red-400 hover:bg-white/10 rounded-lg ml-1">
-                  <Square className="w-3 h-3 md:w-4 md:h-4" fill="currentColor" />
-                </button>
-              )}
-            </div>
-
-            <button onClick={handleShare} className="p-2.5 md:p-3.5 text-slate-400 hover:text-sky-400 hover:bg-white/5 rounded-xl transition-all" title="شیئر">
-              <Share2 className="w-4 h-4 md:w-5 md:h-5" />
+            <button onClick={handleShare} className="p-2 text-slate-400 hover:text-[#0369a1] hover:bg-slate-100 rounded-xl transition-all active:scale-90" title="شیئر">
+              <Share2 className="w-4 h-4" />
             </button>
           </div>
         )}

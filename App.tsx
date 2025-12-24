@@ -16,11 +16,12 @@ const App: React.FC = () => {
   const [showLiveMode, setShowLiveMode] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [isImageMode, setIsImageMode] = useState(false);
-  const [selectedModel, setSelectedModel] = useState('gemini-3-pro-preview');
+  // Default to Flash model for significantly faster response speed
+  const [selectedModel, setSelectedModel] = useState('gemini-3-flash-preview');
   const [customInstructions, setCustomInstructions] = useState('');
   const [settings, setSettings] = useState<UserSettings>({
     fontSize: 'normal',
-    fontFamily: 'sans', // Sada font is the default
+    fontFamily: 'sans', 
     highContrast: false,
     voiceName: 'Kore',
     currentUser: null,
@@ -153,7 +154,6 @@ const App: React.FC = () => {
       );
     } catch (error) {
       console.error("Chat Error:", error);
-      // Optional: Add error message to UI
     } finally {
       setIsLoading(false);
     }

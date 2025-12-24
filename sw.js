@@ -1,9 +1,8 @@
 
-const CACHE_NAME = 'chat-grc-v4.7.0';
+const CACHE_NAME = 'chat-grc-v5.0.0';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
-  '/index.tsx',
   'https://img.icons8.com/fluency/96/sparkling-light.png'
 ];
 

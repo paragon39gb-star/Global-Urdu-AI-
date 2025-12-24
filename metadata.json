@@ -1,6 +1,6 @@
 {
-  "name": "Chat GRC",
-  "description": "Chat GRC - A specialized assistant for research and conversation in Urdu, by Global Research Centre.",
+  "name": "Chat GRC - قاری خالد محمود گولڈ میڈلسٹ",
+  "description": "Global Research Centre's powerful Research Assistant for Quran, Hadith, History and Science.",
   "requestFramePermissions": [
     "camera",
     "microphone"
