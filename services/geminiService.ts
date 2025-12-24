@@ -2,10 +2,15 @@
 import { GoogleGenAI, GenerateContentResponse, Chat, Modality, LiveServerMessage } from "@google/genai";
 import { SYSTEM_PROMPT } from "../constants";
 
+declare var process: {
+  env: {
+    API_KEY: string;
+  }
+};
+
 class ChatGRCService {
   private chatInstance: Chat | null = null;
   private currentModel: string | null = null;
-  private imageModel = 'gemini-2.5-flash-image';
 
   private initializeChat(model: string, history: any[] = [], customInstructions?: string) {
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });

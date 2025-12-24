@@ -1,12 +1,12 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { Sidebar } from './components/Sidebar.tsx';
-import { ChatArea } from './components/ChatArea.tsx';
-import { LiveMode } from './components/LiveMode.tsx';
-import { LoginModal } from './components/LoginModal.tsx';
-import { ChatSession, Message, Attachment, UserSettings, User } from './types.ts';
-import { chatGRC } from './services/geminiService.ts';
-import { NEWS_PROMPT, AI_UPDATES_PROMPT } from './constants.ts';
+import { Sidebar } from './components/Sidebar';
+import { ChatArea } from './components/ChatArea';
+import { LiveMode } from './components/LiveMode';
+import { LoginModal } from './components/LoginModal';
+import { ChatSession, Message, Attachment, UserSettings, User } from './types';
+import { chatGRC } from './services/geminiService';
+import { NEWS_PROMPT, AI_UPDATES_PROMPT } from './constants';
 
 const App: React.FC = () => {
   const [sessions, setSessions] = useState<ChatSession[]>([]);
@@ -28,7 +28,6 @@ const App: React.FC = () => {
     voiceSpeed: 1.0
   });
 
-  // Fixed: Defined createNewChat function to resolve "Cannot find name 'createNewChat'" errors
   const createNewChat = useCallback(() => {
     const newId = Date.now().toString();
     const newSession: ChatSession = {
@@ -77,7 +76,6 @@ const App: React.FC = () => {
         createNewChat();
       }
     } else {
-      // If no user is logged in, still provide a default session for guest usage
       if (sessions.length === 0) {
         createNewChat();
       }
@@ -95,7 +93,6 @@ const App: React.FC = () => {
 
   const currentSession = sessions.find(s => s.id === currentSessionId) || null;
 
-  // Fixed: Implemented handleSendMessage to handle research queries via Gemini Service
   const handleSendMessage = async (content: string, attachments: Attachment[] = []) => {
     if (!currentSessionId) return;
 
@@ -214,5 +211,4 @@ const App: React.FC = () => {
   );
 };
 
-// Fixed: Added default export to resolve index.tsx compilation error
 export default App;
