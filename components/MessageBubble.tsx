@@ -152,7 +152,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, settings 
               : 'bg-gradient-to-br from-[#0c4a6e] to-[#0369a1] text-white border border-white/10 rounded-tr-none shadow-[#0369a1]/10 font-bold'
           }`}
           style={{ 
-            fontSize: settings.fontSize === 'large' ? '1.2rem' : '1.05rem',
+            fontSize: `${settings.fontSize}px`,
             lineHeight: isUrdu ? '1.8' : '1.6'
           }}
           dir={isUrdu ? 'rtl' : 'ltr'}

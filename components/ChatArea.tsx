@@ -3,7 +3,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Sparkles, ArrowUp, Mic, Paperclip, ChevronDown, Menu, Newspaper, Zap, Loader2, RefreshCcw, Award, Calendar, Radio } from 'lucide-react';
 import { MessageBubble } from './MessageBubble';
 import { ChatSession, Attachment, UserSettings } from '../types';
-import { UNIQUENESS_POINTS } from '../constants';
+import { UNIQUENESS_POINTS, SUGGESTIONS } from '../constants';
 
 interface ChatAreaProps {
   session: ChatSession | null;
@@ -111,6 +111,26 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
     }
   };
 
+  const handleSuggestionClick = (suggestion: string) => {
+    setInput(suggestion);
+    if (textareaRef.current) {
+      textareaRef.current.focus();
+      setTimeout(() => {
+        if (textareaRef.current) {
+          textareaRef.current.style.height = 'auto';
+          textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 250)}px`;
+        }
+      }, 0);
+    }
+  };
+
+  // Improved line height logic for Urdu scripts in the chat box
+  const getLineHeight = () => {
+    if (settings.fontFamily === 'nastaleeq') return '2.2';
+    if (settings.fontFamily === 'naskh') return '1.8';
+    return '1.5';
+  };
+
   return (
     <div className={`flex-1 flex flex-col h-full overflow-hidden ${settings.highContrast ? 'bg-slate-950' : 'bg-[#f8fafc]'}`}>
       <header className="h-16 flex items-center justify-between px-3 md:px-6 shrink-0 bg-gradient-to-r from-[#0369a1] via-[#075985] to-[#0c4a6e] z-30 shadow-xl border-b border-white/10">
@@ -201,7 +221,24 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
 
       <footer className={`w-full shrink-0 pt-2 pb-4 md:pb-8 px-4 ${settings.highContrast ? 'bg-slate-950/80' : 'bg-gradient-to-t from-[#f8fafc] via-[#f8fafc]/90 to-transparent'}`}>
         <form onSubmit={handleSubmit} className="max-w-chat mx-auto relative">
-          <div className={`relative flex flex-col w-full border-2 rounded-[1.5rem] md:rounded-[2.2rem] p-1.5 transition-all shadow-2xl backdrop-blur-sm ${settings.highContrast ? 'bg-slate-900 border-slate-700 focus-within:border-sky-500' : 'bg-white/95 border-[#0ea5e9]/30 focus-within:border-[#0ea5e9]'}`}>
+          
+          {/* Quick Suggestions - Visible when input is empty */}
+          {input.length === 0 && !isLoading && (
+            <div className="flex items-center gap-2 mb-3 overflow-x-auto no-scrollbar pb-1 px-1" dir="rtl">
+              {SUGGESTIONS.map((s, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  onClick={() => handleSuggestionClick(s.ur)}
+                  className={`shrink-0 px-4 py-2 rounded-full border text-[11px] md:text-[13px] urdu-text font-black transition-all active:scale-95 hover:shadow-md ${settings.highContrast ? 'bg-slate-900 border-slate-700 text-sky-400 hover:border-sky-500' : 'bg-white border-[#0ea5e9]/20 text-[#0369a1] hover:border-[#0ea5e9]/50'}`}
+                >
+                  {s.ur}
+                </button>
+              ))}
+            </div>
+          )}
+
+          <div className={`relative flex flex-col w-full border-2 rounded-[1.8rem] md:rounded-[2.4rem] p-1.5 transition-all shadow-2xl backdrop-blur-sm ${settings.highContrast ? 'bg-slate-900 border-slate-700 focus-within:border-sky-500' : 'bg-white/95 border-[#0ea5e9]/30 focus-within:border-[#0ea5e9]'}`}>
             
             <textarea
               ref={textareaRef}
@@ -210,31 +247,41 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
               onChange={(e) => { 
                 setInput(e.target.value); 
                 e.target.style.height = 'auto'; 
-                e.target.style.height = `${Math.min(e.target.scrollHeight, 150)}px`; 
+                e.target.style.height = `${Math.min(e.target.scrollHeight, 250)}px`; 
               }}
               onKeyDown={handleKeyDown}
-              placeholder="قرآن، حدیث، تاریخ یا جدید ٹیکنالوجی پر تحقیق کریں..."
-              className={`w-full bg-transparent border-none focus:ring-0 px-4 md:px-6 py-3 resize-none no-scrollbar urdu-text text-right text-base md:text-xl placeholder:text-slate-400 font-bold ${settings.highContrast ? 'text-white' : 'text-slate-900'}`}
+              placeholder="کچھ پوچھیں..."
+              className={`w-full bg-transparent border-none focus:ring-0 px-5 md:px-7 py-4 md:py-5 resize-none no-scrollbar urdu-text text-right font-bold transition-all duration-200 ${settings.highContrast ? 'text-white placeholder:text-slate-600' : 'text-slate-900 placeholder:text-slate-400'}`}
+              style={{ 
+                fontSize: `${settings.fontSize}px`, 
+                lineHeight: getLineHeight(),
+                minHeight: `${Math.max(40, settings.fontSize * 1.8)}px`
+              }}
               dir="auto"
             />
 
-            <div className="flex items-center justify-between px-2 pb-1.5">
-              <div className="flex items-center gap-1">
-                <button type="button" onClick={() => fileInputRef.current?.click()} className="p-2 text-slate-400 hover:text-[#0ea5e9] hover:bg-[#0ea5e9]/10 rounded-full transition-all active:scale-90">
+            <div className="flex items-center justify-between px-3 pb-2.5">
+              <div className="flex items-center gap-1.5">
+                <button type="button" onClick={() => fileInputRef.current?.click()} className="p-2.5 text-slate-400 hover:text-[#0ea5e9] hover:bg-[#0ea5e9]/10 rounded-full transition-all active:scale-90">
                   <Paperclip className="w-5 h-5" />
                 </button>
-                <button type="button" onClick={toggleInputListening} className={`p-2 rounded-full transition-all active:scale-90 ${isListeningInput ? 'text-white bg-red-500 shadow-lg animate-pulse' : 'text-slate-400 hover:text-[#0ea5e9] hover:bg-[#0ea5e9]/10'}`}>
+                <button type="button" onClick={toggleInputListening} className={`p-2.5 rounded-full transition-all active:scale-90 ${isListeningInput ? 'text-white bg-red-500 shadow-lg animate-pulse' : 'text-slate-400 hover:text-[#0ea5e9] hover:bg-[#0ea5e9]/10'}`}>
                   <Mic className="w-5 h-5" />
                 </button>
               </div>
 
-              <button 
-                type="submit" 
-                disabled={(!input.trim() && attachments.length === 0) || isLoading} 
-                className={`w-10 h-10 md:w-12 md:h-12 rounded-full transition-all flex items-center justify-center shadow-xl active:scale-90 ${input.trim() || attachments.length > 0 ? 'bg-[#0369a1] text-white hover:bg-[#075985]' : 'bg-slate-100 text-slate-300'}`}
-              >
-                {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <ArrowUp className="w-5 h-5" strokeWidth={3} />}
-              </button>
+              <div className="flex items-center gap-3">
+                {input.length > 0 && (
+                   <span className="text-[11px] font-black opacity-30 px-2 py-1 bg-slate-100 rounded-lg hidden md:inline">{input.length}</span>
+                )}
+                <button 
+                  type="submit" 
+                  disabled={(!input.trim() && attachments.length === 0) || isLoading} 
+                  className={`w-11 h-11 md:w-13 md:h-13 rounded-full transition-all flex items-center justify-center shadow-xl active:scale-90 ${input.trim() || attachments.length > 0 ? 'bg-[#0369a1] text-white hover:bg-[#075985]' : 'bg-slate-100 text-slate-300'}`}
+                >
+                  {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <ArrowUp className="w-6 h-6" strokeWidth={3} />}
+                </button>
+              </div>
             </div>
           </div>
           

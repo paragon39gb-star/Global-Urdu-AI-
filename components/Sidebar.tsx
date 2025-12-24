@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Plus, MessageSquare, Trash2, X, Type, Volume2, Accessibility, MessageCircle, Sparkles, Info, LogOut, User as UserIcon, LogIn, Download, BookOpen, RefreshCw, CheckCircle2, Award, History, RotateCcw, HelpCircle } from 'lucide-react';
+import { Plus, MessageSquare, Trash2, X, Type, Volume2, Accessibility, MessageCircle, Sparkles, Info, LogOut, User as UserIcon, LogIn, Download, BookOpen, RefreshCw, CheckCircle2, Award, History, RotateCcw, HelpCircle, Minus } from 'lucide-react';
 import { ChatSession, UserSettings } from '../types';
 import { ABOUT_TEXT, USAGE_PROCEDURE_TEXT, APP_VERSION } from '../constants';
 
@@ -41,7 +41,19 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const [activePopover, setActivePopover] = useState<'about' | 'usage' | null>(null);
 
   const toggleHighContrast = () => setSettings({...settings, highContrast: !settings.highContrast});
-  const toggleFontSize = () => setSettings({...settings, fontSize: settings.fontSize === 'normal' ? 'large' : 'normal'});
+  
+  const increaseFontSize = () => {
+    setSettings({...settings, fontSize: Math.min(settings.fontSize + 2, 40)});
+  };
+
+  const decreaseFontSize = () => {
+    setSettings({...settings, fontSize: Math.max(settings.fontSize - 2, 12)});
+  };
+
+  const resetFontSize = () => {
+    setSettings({...settings, fontSize: 18});
+  };
+
   const setFont = (fam: 'naskh' | 'nastaleeq' | 'sans') => setSettings({...settings, fontFamily: fam});
 
   const handleUpdate = async () => {
@@ -59,7 +71,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
         await Promise.all(keys.map(key => caches.delete(key)));
       }
 
-      // Hard refresh with cache busting
       setTimeout(() => {
         window.location.href = window.location.origin + window.location.pathname + '?v=' + Date.now();
       }, 1000);
@@ -153,21 +164,29 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </div>
 
           <div className={`p-4 border-t space-y-3 ${settings.highContrast ? 'border-slate-800 bg-black/40' : 'border-white/10 bg-black/20'}`}>
-            <div className="flex gap-2">
-              <button onClick={toggleFontSize} className={`flex-1 p-2.5 rounded-xl flex items-center justify-center gap-2 transition-all border active:scale-95 ${settings.fontSize === 'large' ? 'bg-white text-slate-900 border-white' : 'bg-white/5 text-white/70 border-white/10'}`}>
-                <Type size={16} />
-                <span className="text-[10px] urdu-text font-black">فونٹ</span>
-              </button>
-              <button onClick={toggleHighContrast} className={`flex-1 p-2.5 rounded-xl flex items-center justify-center gap-2 transition-all border active:scale-95 ${settings.highContrast ? 'bg-white text-slate-900 border-white' : 'bg-white/5 text-white/70 border-white/10'}`}>
+            <div className="flex flex-col gap-2">
+              <div className="flex bg-white/5 rounded-xl border border-white/10 overflow-hidden items-center">
+                <button onClick={decreaseFontSize} className="p-3 flex items-center justify-center text-white/70 hover:bg-white/10 transition-all active:scale-90 border-r border-white/10" title="کم کریں">
+                  <Minus size={16} />
+                </button>
+                <button onClick={resetFontSize} className="flex-1 flex flex-col items-center justify-center p-1 hover:bg-white/5 transition-colors" title="ری سیٹ">
+                  <Type size={14} className="text-sky-300" />
+                  <span className="text-[10px] font-black text-white">{settings.fontSize}px</span>
+                </button>
+                <button onClick={increaseFontSize} className="p-3 flex items-center justify-center text-white/70 hover:bg-white/10 transition-all active:scale-90 border-l border-white/10" title="زیادہ کریں">
+                  <Plus size={16} />
+                </button>
+              </div>
+              <button onClick={toggleHighContrast} className={`w-full p-2.5 rounded-xl flex items-center justify-center gap-2 transition-all border active:scale-95 ${settings.highContrast ? 'bg-white text-slate-900 border-white' : 'bg-white/5 text-white/70 border-white/10'}`}>
                 <Accessibility size={16} />
-                <span className="text-[10px] urdu-text font-black">ڈارک</span>
+                <span className="text-[10px] urdu-text font-black">ڈارک موڈ</span>
               </button>
             </div>
 
-            <div className="flex gap-2">
-               <button onClick={() => setFont('nastaleeq')} className={`flex-1 p-2 rounded-lg text-[10px] urdu-text font-black border transition-all ${settings.fontFamily === 'nastaleeq' ? 'bg-white/20 border-white text-white shadow-lg' : 'border-white/5 text-white/40'}`}>نستعلیق</button>
-               <button onClick={() => setFont('naskh')} className={`flex-1 p-2 rounded-lg text-[10px] urdu-text font-black border transition-all ${settings.fontFamily === 'naskh' ? 'bg-white/20 border-white text-white shadow-lg' : 'border-white/5 text-white/40'}`}>نسخ</button>
-               <button onClick={() => setFont('sans')} className={`flex-1 p-2 rounded-lg text-[10px] urdu-text font-black border transition-all ${settings.fontFamily === 'sans' ? 'bg-white/20 border-white text-white shadow-lg' : 'border-white/5 text-white/40'}`}>سادہ</button>
+            <div className="flex gap-1.5">
+               <button onClick={() => setFont('nastaleeq')} className={`flex-1 py-2 px-1 rounded-lg text-[10px] urdu-text font-black border transition-all ${settings.fontFamily === 'nastaleeq' ? 'bg-white/20 border-white text-white shadow-lg' : 'border-white/5 text-white/40 hover:bg-white/5'}`}>نستعلیق</button>
+               <button onClick={() => setFont('naskh')} className={`flex-1 py-2 px-1 rounded-lg text-[10px] urdu-text font-black border transition-all ${settings.fontFamily === 'naskh' ? 'bg-white/20 border-white text-white shadow-lg' : 'border-white/5 text-white/40 hover:bg-white/5'}`}>نسخ</button>
+               <button onClick={() => setFont('sans')} className={`flex-1 py-2 px-1 rounded-lg text-[10px] urdu-text font-black border transition-all ${settings.fontFamily === 'sans' ? 'bg-white/20 border-white text-white shadow-lg' : 'border-white/5 text-white/40 hover:bg-white/5'}`}>سادہ</button>
             </div>
 
             <div className="grid grid-cols-2 gap-2">

@@ -20,7 +20,7 @@ const App: React.FC = () => {
   const [selectedModel, setSelectedModel] = useState('gemini-3-flash-preview');
   const [customInstructions, setCustomInstructions] = useState('');
   const [settings, setSettings] = useState<UserSettings>({
-    fontSize: 'normal',
+    fontSize: 18,
     fontFamily: 'sans', 
     highContrast: false,
     voiceName: 'Kore',
@@ -70,6 +70,10 @@ const App: React.FC = () => {
     if (savedSettings) {
       try { 
         const parsed = JSON.parse(savedSettings);
+        // Migration check for old string-based fontSize
+        if (typeof parsed.fontSize === 'string') {
+          parsed.fontSize = parsed.fontSize === 'large' ? 22 : 18;
+        }
         setSettings(prev => ({ ...prev, ...parsed })); 
       } catch (e) {}
     }
