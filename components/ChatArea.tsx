@@ -36,7 +36,6 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
 }) => {
   const [input, setInput] = useState('');
   const [attachments, setAttachments] = useState<Attachment[]>([]);
-  const [showModelMenu, setShowModelMenu] = useState(false);
   const [isListeningInput, setIsListeningInput] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [currentDate, setCurrentDate] = useState('');
@@ -113,8 +112,7 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
   };
 
   return (
-    <div className="flex-1 flex flex-col h-full bg-[#f8fafc] overflow-hidden text-[#000000]">
-      {/* Premium Header */}
+    <div className={`flex-1 flex flex-col h-full overflow-hidden ${settings.highContrast ? 'bg-slate-950' : 'bg-[#f8fafc]'}`}>
       <header className="h-16 flex items-center justify-between px-3 md:px-6 shrink-0 bg-gradient-to-r from-[#0369a1] via-[#075985] to-[#0c4a6e] z-30 shadow-xl border-b border-white/10">
         <div className="flex items-center gap-2 md:gap-4">
           <button onClick={onToggleSidebar} className="lg:hidden p-2 hover:bg-white/20 rounded-xl text-white transition-all active:scale-90">
@@ -122,25 +120,24 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
           </button>
           <div className="flex flex-col">
             <div className="flex items-center gap-2">
-              <span className="font-black text-xl md:text-2xl urdu-text text-white drop-shadow-md tracking-tight">Chat GRC</span>
+              <span className="font-black text-xl md:text-2xl urdu-text text-white drop-shadow-md tracking-tight">Urdu AI</span>
               <Award className="w-4 h-4 md:w-5 md:h-5 text-yellow-400 drop-shadow-[0_0_8px_rgba(250,204,21,0.5)]" />
             </div>
           </div>
         </div>
         
         <div className="flex items-center gap-1 md:gap-3">
-           {/* Added Live Chat Button */}
-           <button onClick={onStartVoice} className="flex items-center gap-2 px-3 py-1.5 md:py-2 bg-emerald-500/20 hover:bg-emerald-500/30 rounded-xl border border-emerald-500/20 transition-all active:scale-95 group shadow-lg">
+           <button onClick={onStartVoice} className="flex items-center gap-1.5 px-2 md:px-3 py-1.5 md:py-2 bg-emerald-500/20 hover:bg-emerald-500/30 rounded-xl border border-emerald-500/20 transition-all active:scale-95 group shadow-lg">
               <Radio className="w-4 h-4 text-emerald-400 animate-pulse" />
-              <span className="urdu-text text-xs md:text-sm font-black text-white">لائیو چیٹ</span>
+              <span className="urdu-text text-[10px] md:text-sm font-black text-white">لائیو</span>
            </button>
-           <button onClick={onFetchNews} className="flex items-center gap-2 px-3 py-1.5 md:py-2 bg-white/10 hover:bg-white/20 rounded-xl border border-white/10 transition-all active:scale-95">
+           <button onClick={onFetchNews} className="flex items-center gap-1.5 px-2 md:px-3 py-1.5 md:py-2 bg-white/10 hover:bg-white/20 rounded-xl border border-white/10 transition-all active:scale-95">
               <Newspaper className="w-4 h-4 text-white" />
-              <span className="urdu-text text-xs md:text-sm font-black text-white">خبریں</span>
+              <span className="urdu-text text-[10px] md:text-sm font-black text-white">خبریں</span>
            </button>
-           <button onClick={onFetchAIUpdates} className="flex items-center gap-2 px-3 py-1.5 md:py-2 bg-white/10 hover:bg-white/20 rounded-xl border border-white/10 transition-all active:scale-95">
+           <button onClick={onFetchAIUpdates} className="flex items-center gap-1.5 px-2 md:px-3 py-1.5 md:py-2 bg-white/10 hover:bg-white/20 rounded-xl border border-white/10 transition-all active:scale-95">
               <Zap className="w-4 h-4 text-yellow-400" />
-              <span className="urdu-text text-xs md:text-sm font-black text-white">AI نیوز</span>
+              <span className="urdu-text text-[10px] md:text-sm font-black text-white">AI</span>
            </button>
            <button onClick={handleRefresh} className="p-2 text-white/70 hover:text-white hover:bg-white/20 rounded-lg transition-all active:rotate-180 duration-500">
               <RefreshCcw className={`w-5 h-5 ${isRefreshing ? 'animate-spin' : ''}`} />
@@ -148,10 +145,8 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
         </div>
       </header>
 
-      {/* Main Chat Area with very soft gradient background */}
-      <div className="flex-1 overflow-y-auto no-scrollbar scroll-smooth bg-gradient-to-b from-[#f8fafc] to-[#f1f5f9] opacity-100 relative">
-        {/* Subtle background overlay for texture */}
-        <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/clean-gray-paper.png')] opacity-30 pointer-events-none"></div>
+      <div className={`flex-1 overflow-y-auto no-scrollbar scroll-smooth relative ${settings.highContrast ? 'bg-slate-950' : 'bg-gradient-to-b from-[#f8fafc] to-[#f1f5f9]'}`}>
+        {!settings.highContrast && <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/clean-gray-paper.png')] opacity-30 pointer-events-none"></div>}
         
         <div className="w-full max-w-chat mx-auto px-4 py-2 md:py-4 flex flex-col min-h-full relative z-10">
           {!session || session.messages.length === 0 ? (
@@ -164,15 +159,15 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
                   </div>
                 </div>
                 <div className="space-y-1">
-                  <h2 className="text-3xl md:text-4xl font-black urdu-text text-[#000000] leading-tight drop-shadow-sm">گلوبل ریسرچ سینٹر</h2>
-                  <p className="text-lg md:text-xl font-bold urdu-text text-[#000080] opacity-90">آپ کا مستند تحقیقی ساتھی</p>
+                  <h2 className={`text-3xl md:text-4xl font-black urdu-text leading-tight drop-shadow-sm ${settings.highContrast ? 'text-white' : 'text-slate-900'}`}>Urdu AI (اردو اے آئی)</h2>
+                  <p className={`text-lg md:text-xl font-bold urdu-text opacity-90 ${settings.highContrast ? 'text-sky-400' : 'text-[#000080]'}`}>آپ کا مستند تحقیقی ساتھی</p>
                 </div>
                 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-4">
                   {UNIQUENESS_POINTS.map((p, i) => (
-                    <div key={i} className="bg-white/70 backdrop-blur-sm p-3 rounded-2xl text-right border-b-4 border-[#0ea5e9] shadow-lg hover:translate-y-[-2px] transition-all duration-300">
-                      <h3 className="urdu-text font-black text-[#000080] text-sm mb-1">{p.title}</h3>
-                      <p className="urdu-text text-[10px] text-slate-700 leading-relaxed font-bold">{p.desc}</p>
+                    <div key={i} className={`p-3 rounded-2xl text-right border-b-4 border-[#0ea5e9] shadow-lg hover:translate-y-[-2px] transition-all duration-300 backdrop-blur-sm ${settings.highContrast ? 'bg-slate-900/50 border-sky-600' : 'bg-white/70'}`}>
+                      <h3 className={`urdu-text font-black text-sm mb-1 ${settings.highContrast ? 'text-sky-300' : 'text-[#000080]'}`}>{p.title}</h3>
+                      <p className={`urdu-text text-[10px] leading-relaxed font-bold ${settings.highContrast ? 'text-slate-300' : 'text-slate-700'}`}>{p.desc}</p>
                     </div>
                   ))}
                 </div>
@@ -181,9 +176,9 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
           ) : (
             <div className="space-y-3 pb-32">
               <div className="flex justify-center mb-6">
-                <div className="bg-white/80 backdrop-blur-md px-5 py-2 rounded-2xl border border-[#0ea5e9]/20 shadow-md flex items-center gap-2 group hover:border-[#0ea5e9]/50 transition-all">
-                  <Calendar className="w-4 h-4 text-[#000080] group-hover:scale-110 transition-transform" />
-                  <span className="urdu-text text-xs md:text-sm font-black text-[#000080]">{currentDate}</span>
+                <div className={`px-5 py-2 rounded-2xl border shadow-md flex items-center gap-2 group hover:border-[#0ea5e9]/50 transition-all backdrop-blur-md ${settings.highContrast ? 'bg-slate-900 border-slate-700' : 'bg-white/80 border-[#0ea5e9]/20'}`}>
+                  <Calendar className={`w-4 h-4 group-hover:scale-110 transition-transform ${settings.highContrast ? 'text-sky-400' : 'text-[#000080]'}`} />
+                  <span className={`urdu-text text-xs md:text-sm font-black ${settings.highContrast ? 'text-sky-300' : 'text-[#000080]'}`}>{currentDate}</span>
                 </div>
               </div>
 
@@ -192,7 +187,7 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
               ))}
               {isLoading && session.messages[session.messages.length-1]?.role === 'user' && (
                 <div className="flex justify-start px-2">
-                  <div className="bg-white/90 backdrop-blur-sm px-4 py-2 rounded-2xl shadow-lg flex items-center gap-3 border border-[#0ea5e9]/30 animate-pulse">
+                  <div className={`px-4 py-2 rounded-2xl shadow-lg flex items-center gap-3 border animate-pulse backdrop-blur-sm ${settings.highContrast ? 'bg-slate-900 border-sky-900' : 'bg-white/90 border-[#0ea5e9]/30'}`}>
                     <Loader2 className="w-4 h-4 text-[#0ea5e9] animate-spin" />
                     <span className="urdu-text text-xs font-black text-[#0ea5e9]">تحقیق جاری ہے...</span>
                   </div>
@@ -204,10 +199,9 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
         </div>
       </div>
 
-      {/* Elegant Footer Area */}
-      <footer className="w-full shrink-0 bg-gradient-to-t from-[#f8fafc] via-[#f8fafc]/90 to-transparent pt-2 pb-4 md:pb-8 px-4">
+      <footer className={`w-full shrink-0 pt-2 pb-4 md:pb-8 px-4 ${settings.highContrast ? 'bg-slate-950/80' : 'bg-gradient-to-t from-[#f8fafc] via-[#f8fafc]/90 to-transparent'}`}>
         <form onSubmit={handleSubmit} className="max-w-chat mx-auto relative">
-          <div className="relative flex flex-col w-full bg-white/95 backdrop-blur-sm border-2 border-[#0ea5e9]/30 rounded-[1.5rem] md:rounded-[2.2rem] p-1.5 focus-within:border-[#0ea5e9] focus-within:shadow-[0_0_25px_rgba(14,165,233,0.15)] transition-all shadow-2xl">
+          <div className={`relative flex flex-col w-full border-2 rounded-[1.5rem] md:rounded-[2.2rem] p-1.5 transition-all shadow-2xl backdrop-blur-sm ${settings.highContrast ? 'bg-slate-900 border-slate-700 focus-within:border-sky-500' : 'bg-white/95 border-[#0ea5e9]/30 focus-within:border-[#0ea5e9]'}`}>
             
             <textarea
               ref={textareaRef}
@@ -219,8 +213,8 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
                 e.target.style.height = `${Math.min(e.target.scrollHeight, 150)}px`; 
               }}
               onKeyDown={handleKeyDown}
-              placeholder="قرآن، حدیث، تاریخ یا جنرل نالج پر تحقیق کریں..."
-              className="w-full bg-transparent border-none focus:ring-0 text-[#000000] px-4 md:px-6 py-3 resize-none no-scrollbar urdu-text text-right text-base md:text-xl placeholder:text-slate-400 font-bold"
+              placeholder="قرآن، حدیث، تاریخ یا جدید ٹیکنالوجی پر تحقیق کریں..."
+              className={`w-full bg-transparent border-none focus:ring-0 px-4 md:px-6 py-3 resize-none no-scrollbar urdu-text text-right text-base md:text-xl placeholder:text-slate-400 font-bold ${settings.highContrast ? 'text-white' : 'text-slate-900'}`}
               dir="auto"
             />
 
@@ -247,10 +241,10 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
           <input type="file" multiple ref={fileInputRef} className="hidden" />
           
           <div className="mt-2 flex flex-col items-center gap-0.5 opacity-80">
-            <p className="text-[12px] md:text-[14px] text-[#000080] font-black uppercase tracking-[0.2em] urdu-text text-center">
+            <p className={`text-[12px] md:text-[14px] font-black uppercase tracking-[0.2em] urdu-text text-center ${settings.highContrast ? 'text-sky-400' : 'text-[#000080]'}`}>
               Global Research Centre
             </p>
-            <p className="text-[10px] md:text-[12px] text-slate-500 urdu-text font-black">
+            <p className={`text-[10px] md:text-[12px] urdu-text font-black ${settings.highContrast ? 'text-slate-400' : 'text-slate-500'}`}>
               از قاری خالد محمود گولڈ میڈلسٹ
             </p>
           </div>

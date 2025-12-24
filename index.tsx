@@ -6,7 +6,10 @@ import App from './App';
 // Register Service Worker for PWA
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js')
+    // Using a relative path 'sw.js' instead of '/sw.js' ensures the Service Worker 
+    // is registered against the current origin, avoiding errors in proxied 
+    // environments like Google AI Studio.
+    navigator.serviceWorker.register('sw.js')
       .then(reg => console.log('Chat GRC SW Registered', reg.scope))
       .catch(err => console.log('Chat GRC SW Registration Failed', err));
   });

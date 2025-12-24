@@ -15,10 +15,8 @@ const App: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [showLiveMode, setShowLiveMode] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
-  const [isImageMode, setIsImageMode] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   
-  // Using gemini-3-flash-preview for extreme speed
   const [selectedModel, setSelectedModel] = useState('gemini-3-flash-preview');
   const [customInstructions, setCustomInstructions] = useState('');
   const [settings, setSettings] = useState<UserSettings>({
@@ -32,14 +30,19 @@ const App: React.FC = () => {
   });
 
   useEffect(() => {
-    window.addEventListener('beforeinstallprompt', (e) => {
+    const handler = (e: any) => {
       e.preventDefault();
       setDeferredPrompt(e);
-    });
+    };
+    window.addEventListener('beforeinstallprompt', handler);
+    return () => window.removeEventListener('beforeinstallprompt', handler);
   }, []);
 
   const handleInstall = async () => {
-    if (!deferredPrompt) return;
+    if (!deferredPrompt) {
+      alert("براؤزر پہلے ہی انسٹال ہے یا فیچر سپورٹ نہیں کر رہا۔");
+      return;
+    }
     deferredPrompt.prompt();
     const { outcome } = await deferredPrompt.userChoice;
     if (outcome === 'accepted') setDeferredPrompt(null);
@@ -68,14 +71,8 @@ const App: React.FC = () => {
       try { 
         const parsed = JSON.parse(savedSettings);
         setSettings(prev => ({ ...prev, ...parsed })); 
-      } catch (e) {
-        console.error("Settings load error:", e);
-      }
+      } catch (e) {}
     }
-    const setHeight = () => document.documentElement.style.setProperty('--vh', `${window.innerHeight * 0.01}px`);
-    setHeight();
-    window.addEventListener('resize', setHeight);
-    return () => window.removeEventListener('resize', setHeight);
   }, []);
 
   useEffect(() => {
@@ -87,19 +84,10 @@ const App: React.FC = () => {
           if (Array.isArray(parsed) && parsed.length > 0) {
             setSessions(parsed);
             setCurrentSessionId(parsed[0].id);
-            chatGRC.resetChat();
-          } else {
-            createNewChat();
-          }
-        } catch (e) {
-          createNewChat();
-        }
-      } else {
-        createNewChat();
-      }
-    } else if (sessions.length === 0) {
-      createNewChat();
-    }
+          } else { createNewChat(); }
+        } catch (e) { createNewChat(); }
+      } else { createNewChat(); }
+    } else if (sessions.length === 0) { createNewChat(); }
   }, [settings.currentUser, createNewChat]);
 
   useEffect(() => {
@@ -107,7 +95,8 @@ const App: React.FC = () => {
       localStorage.setItem(`chat_grc_sessions_${settings.currentUser.id}`, JSON.stringify(sessions));
     }
     localStorage.setItem('chat_grc_settings', JSON.stringify(settings));
-    document.body.className = settings.highContrast ? 'high-contrast bg-slate-900' : 'bg-slate-50';
+    document.body.className = settings.highContrast ? 'high-contrast bg-slate-950 text-white' : 'bg-[#f8fafc] text-slate-900';
+    document.documentElement.classList.toggle('dark', settings.highContrast);
     localStorage.setItem('chat_grc_custom_instructions', customInstructions);
   }, [sessions, settings, customInstructions]);
 
@@ -130,7 +119,7 @@ const App: React.FC = () => {
             ...s, 
             messages: [...s.messages, userMessage], 
             updatedAt: Date.now(), 
-            title: s.messages.length === 0 ? content.slice(0, 40) : s.title 
+            title: s.messages.length === 0 ? content.slice(0, 30) : s.title 
           }
         : s
     ));
@@ -178,13 +167,15 @@ const App: React.FC = () => {
   const deleteSession = (id: string) => {
     setSessions(prev => {
       const filtered = prev.filter(s => s.id !== id);
-      if (filtered.length === 0) {
-        setTimeout(() => createNewChat(), 0);
-        return [];
-      }
+      if (filtered.length === 0) { setTimeout(() => createNewChat(), 0); return []; }
       if (id === currentSessionId) setCurrentSessionId(filtered[0].id);
       return filtered;
     });
+  };
+
+  const handleWhatsAppFeedback = () => {
+    const message = encodeURIComponent("سلام اردو اے آئی! میں اپنی رائے دینا چاہتا ہوں: ");
+    window.open(`https://wa.me/923099572321?text=${message}`, '_blank');
   };
 
   const getFontClass = () => {
@@ -211,7 +202,7 @@ const App: React.FC = () => {
         setCustomInstructions={setCustomInstructions}
         onLogout={() => setSettings({...settings, currentUser: null})}
         onShowLogin={() => setShowLoginModal(true)}
-        onSendFeedback={() => window.open('https://grc.org.pk/feedback', '_blank')}
+        onSendFeedback={handleWhatsAppFeedback}
         onInstall={deferredPrompt ? handleInstall : undefined}
       />
       <ChatArea 
@@ -219,8 +210,8 @@ const App: React.FC = () => {
         onSendMessage={handleSendMessage}
         onFetchNews={() => handleSendMessage(NEWS_PROMPT)}
         onFetchAIUpdates={() => handleSendMessage(AI_UPDATES_PROMPT)}
-        isImageMode={isImageMode}
-        setIsImageMode={setIsImageMode}
+        isImageMode={false}
+        setIsImageMode={() => {}}
         onStartVoice={() => setShowLiveMode(true)}
         isLoading={isLoading}
         selectedModel={selectedModel}

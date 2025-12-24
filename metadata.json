@@ -1,6 +1,6 @@
 {
-  "name": "Chat GRC - قاری خالد محمود گولڈ میڈلسٹ",
-  "description": "Global Research Centre's powerful Research Assistant for Quran, Hadith, History and Science.",
+  "name": "Urdu AI - قاری خالد محمود گولڈ میڈلسٹ",
+  "description": "گلوبل ریسرچ سینٹر کا طاقتور تحقیقی اسسٹنٹ برائے قرآن، حدیث، تاریخ اور سائنس۔",
   "requestFramePermissions": [
     "camera",
     "microphone"

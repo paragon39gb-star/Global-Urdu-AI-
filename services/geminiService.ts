@@ -9,7 +9,6 @@ class ChatGRCService {
   private initializeChat(model: string, history: any[] = [], customInstructions?: string) {
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     
-    // Inject current date into system prompt
     const now = new Date();
     const dateStr = now.toLocaleDateString('ur-PK', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
     const timeStr = now.toLocaleTimeString('ur-PK');
@@ -34,10 +33,9 @@ class ChatGRCService {
       history: geminiHistory,
       config: {
         systemInstruction: (customInstructions ? `${updatedSystemPrompt}\n\nUSER CUSTOM INSTRUCTIONS:\n${customInstructions}` : updatedSystemPrompt),
-        temperature: 0.7, // Slightly higher for faster-feeling conversational flow
+        temperature: 0.1, // Lower temperature for maximum precision and faster sampling
         topP: 0.95,
-        tools: [{ googleSearch: {} }],
-        thinkingConfig: model.includes('pro') ? { thinkingBudget: 32768 } : undefined
+        tools: [{ googleSearch: {} }]
       }
     });
   }
@@ -105,7 +103,7 @@ class ChatGRCService {
     try {
       const response = await ai.models.generateContent({
         model: "gemini-2.5-flash-preview-tts",
-        contents: [{ parts: [{ text: text }] }],
+        contents: [{ parts: [{ text: `اردو میں شستہ اور باوقار لہجے میں پڑھیں: ${text}` }] }],
         config: {
           responseModalities: [Modality.AUDIO],
           speechConfig: {
@@ -126,7 +124,7 @@ class ChatGRCService {
     return ai.live.connect({
       model: 'gemini-2.5-flash-native-audio-preview-09-2025',
       callbacks: {
-        onopen: () => console.log("Chat GRC Live Connected"),
+        onopen: () => console.log("Live Connected"),
         onmessage: async (message: LiveServerMessage) => {
           const part = message.serverContent?.modelTurn?.parts?.[0];
           if (part?.inlineData?.data) callbacks.onAudio(part.inlineData.data);
@@ -135,15 +133,12 @@ class ChatGRCService {
           if (message.serverContent?.turnComplete) callbacks.onTurnComplete();
           if (message.serverContent?.interrupted) callbacks.onInterrupted();
         },
-        onerror: (e) => {
-          console.error("Live Error:", e);
-          callbacks.onClose();
-        },
+        onerror: (e) => callbacks.onClose(),
         onclose: () => callbacks.onClose()
       },
       config: {
         responseModalities: [Modality.AUDIO],
-        systemInstruction: SYSTEM_PROMPT,
+        systemInstruction: SYSTEM_PROMPT + "\n\nصارف سے شستہ اردو میں بات کریں اور مختصر و جامع جواب دیں۔",
         speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: voiceName } } },
         inputAudioTranscription: {},
         outputAudioTranscription: {}
