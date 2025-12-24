@@ -16,7 +16,9 @@ const App: React.FC = () => {
   const [showLiveMode, setShowLiveMode] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [isImageMode, setIsImageMode] = useState(false);
-  // Default to Flash model for significantly faster response speed
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  
+  // Using gemini-3-flash-preview for extreme speed
   const [selectedModel, setSelectedModel] = useState('gemini-3-flash-preview');
   const [customInstructions, setCustomInstructions] = useState('');
   const [settings, setSettings] = useState<UserSettings>({
@@ -28,6 +30,20 @@ const App: React.FC = () => {
     voicePitch: 1.0,
     voiceSpeed: 1.0
   });
+
+  useEffect(() => {
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+    });
+  }, []);
+
+  const handleInstall = async () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    if (outcome === 'accepted') setDeferredPrompt(null);
+  };
 
   const createNewChat = useCallback(() => {
     const newId = Date.now().toString();
@@ -91,7 +107,7 @@ const App: React.FC = () => {
       localStorage.setItem(`chat_grc_sessions_${settings.currentUser.id}`, JSON.stringify(sessions));
     }
     localStorage.setItem('chat_grc_settings', JSON.stringify(settings));
-    document.body.className = settings.highContrast ? 'high-contrast bg-slate-900' : 'bg-[#020617]';
+    document.body.className = settings.highContrast ? 'high-contrast bg-slate-900' : 'bg-slate-50';
     localStorage.setItem('chat_grc_custom_instructions', customInstructions);
   }, [sessions, settings, customInstructions]);
 
@@ -196,6 +212,7 @@ const App: React.FC = () => {
         onLogout={() => setSettings({...settings, currentUser: null})}
         onShowLogin={() => setShowLoginModal(true)}
         onSendFeedback={() => window.open('https://grc.org.pk/feedback', '_blank')}
+        onInstall={deferredPrompt ? handleInstall : undefined}
       />
       <ChatArea 
         session={currentSession}

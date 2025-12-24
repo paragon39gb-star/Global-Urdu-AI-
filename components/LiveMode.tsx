@@ -1,6 +1,6 @@
 
 import React, { useEffect, useRef, useState } from 'react';
-import { Mic, X, Volume2, AlertCircle, ShieldCheck, MessageSquare } from 'lucide-react';
+import { Mic, X, Volume2, AlertCircle, ShieldCheck, MessageSquare, Radio } from 'lucide-react';
 import { chatGRC } from '../services/geminiService';
 import { UserSettings } from '../types';
 
@@ -73,7 +73,7 @@ export const LiveMode: React.FC<LiveModeProps> = ({ onClose, settings }) => {
     const audioCtx = new AudioContextClass();
     const source = audioCtx.createMediaStreamSource(stream);
     const analyser = audioCtx.createAnalyser();
-    analyser.fftSize = 128;
+    analyser.fftSize = 64;
     source.connect(analyser);
 
     const bufferLength = analyser.frequencyBinCount;
@@ -91,18 +91,25 @@ export const LiveMode: React.FC<LiveModeProps> = ({ onClose, settings }) => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       const centerX = canvas.width / 2;
       const centerY = canvas.height / 2;
-      const radius = 40;
+      const radius = 50;
+
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, radius + 5, 0, 2 * Math.PI);
+      ctx.strokeStyle = 'rgba(14, 165, 233, 0.1)';
+      ctx.lineWidth = 1;
+      ctx.stroke();
 
       for (let i = 0; i < bufferLength; i++) {
-        const barHeight = (dataArray[i] / 255) * 45;
+        const barHeight = (dataArray[i] / 255) * 50;
         const angle = (i * 2 * Math.PI) / bufferLength;
         const x1 = centerX + Math.cos(angle) * radius;
         const y1 = centerY + Math.sin(angle) * radius;
         const x2 = centerX + Math.cos(angle) * (radius + barHeight);
         const y2 = centerY + Math.sin(angle) * (radius + barHeight);
 
-        ctx.strokeStyle = `rgba(56, 189, 248, ${0.4 + (dataArray[i] / 255)})`;
-        ctx.lineWidth = 3;
+        ctx.strokeStyle = isUserSpeaking ? `rgba(14, 165, 233, ${0.4 + (dataArray[i] / 255)})` : `rgba(14, 165, 233, 0.3)`;
+        ctx.lineWidth = 4;
+        ctx.lineCap = 'round';
         ctx.beginPath();
         ctx.moveTo(x1, y1);
         ctx.lineTo(x2, y2);
@@ -204,7 +211,7 @@ export const LiveMode: React.FC<LiveModeProps> = ({ onClose, settings }) => {
       scriptProcessor.connect(inputCtx.destination);
       setIsActive(true);
     } catch (err: any) {
-      setError("Microphone access denied.");
+      setError("مائیکروفون تک رسائی ممکن نہیں۔");
       setTimeout(onClose, 3000);
     }
   };
@@ -216,76 +223,81 @@ export const LiveMode: React.FC<LiveModeProps> = ({ onClose, settings }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/98 backdrop-blur-3xl p-0 md:p-4">
-      <div className="w-full h-full md:h-auto md:max-w-2xl md:max-h-[90vh] glass-panel md:rounded-[3rem] border-sky-500/20 flex flex-col relative overflow-hidden shadow-2xl">
-        <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-sky-500/10 rounded-full blur-[120px] transition-all duration-1000 pointer-events-none ${isUserSpeaking ? 'scale-150 opacity-100' : 'scale-100 opacity-20'}`} />
-        <div className="p-5 md:p-8 flex items-center justify-between border-b border-white/5 relative z-20 bg-black/40 shrink-0">
-          <div className="flex items-center gap-4">
-             <div className={`p-3 rounded-2xl transition-colors duration-500 ${isUserSpeaking ? 'bg-sky-500/30' : 'bg-slate-800/50'}`}>
-                <Mic size={22} className={`text-sky-300 ${isUserSpeaking ? 'animate-pulse' : ''}`} />
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/95 backdrop-blur-3xl p-4">
+      <div className="w-full max-w-xl bg-white rounded-[2.5rem] border border-slate-200 flex flex-col relative overflow-hidden shadow-2xl animate-in zoom-in-95 duration-300 h-[80vh] md:h-[70vh]">
+        
+        {/* Header */}
+        <div className="p-6 flex items-center justify-between border-b border-slate-100 bg-slate-50/50 shrink-0">
+          <div className="flex items-center gap-3">
+             <div className="w-10 h-10 rounded-xl bg-[#0369a1] flex items-center justify-center shadow-lg shadow-[#0369a1]/20">
+                <Radio size={20} className="text-white animate-pulse" />
              </div>
              <div>
-                <h2 className="text-base md:text-xl font-bold urdu-text text-white">براہِ راست گفتگو</h2>
-                <div className="flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                  <p className="text-[10px] text-sky-300 font-bold uppercase tracking-widest">Live Research Active</p>
+                <h2 className="text-lg font-black urdu-text text-[#0c4a6e]">لائیو گفتگو</h2>
+                <div className="flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                  <span className="text-[10px] text-[#0369a1] font-black tracking-widest uppercase">Live Research</span>
                 </div>
              </div>
           </div>
-          <button onClick={onClose} className="p-3 text-slate-400 hover:text-white transition-all hover:bg-white/10 rounded-full active:scale-90">
-            <X size={24} />
+          <button onClick={onClose} className="p-2.5 text-slate-400 hover:text-[#0c4a6e] hover:bg-slate-100 rounded-full transition-all active:scale-90">
+            <X size={20} />
           </button>
         </div>
-        <div className="p-6 md:p-10 flex flex-col items-center gap-6 shrink-0 relative">
-          <div className={`relative w-28 h-28 md:w-40 md:h-40 rounded-full flex items-center justify-center transition-all duration-700 z-10 ${isUserSpeaking ? 'scale-110 shadow-[0_0_60px_rgba(14,165,233,0.4)]' : 'scale-100 shadow-2xl'}`}>
-            <canvas ref={canvasRef} width={200} height={200} className="absolute inset-0 w-full h-full pointer-events-none" />
-            <div className={`absolute inset-0 rounded-full border-2 border-sky-400/30 ${isUserSpeaking ? 'animate-ping opacity-30' : 'opacity-0'}`} />
-            <div className="w-20 h-20 md:w-32 md:h-32 rounded-full bg-gradient-to-tr from-sky-800 to-sky-400 flex items-center justify-center z-10 border-4 border-white/10 shadow-2xl overflow-hidden ring-4 ring-sky-500/5">
-              {isUserSpeaking ? <Mic size={40} className="text-white" /> : <Volume2 size={40} className="text-white" />}
+
+        {/* Interaction Area */}
+        <div className="p-10 flex flex-col items-center justify-center gap-8 shrink-0 bg-gradient-to-b from-slate-50 to-transparent">
+          <div className="relative w-40 h-40 flex items-center justify-center">
+            <canvas ref={canvasRef} width={250} height={250} className="absolute inset-0 w-full h-full" />
+            <div className={`w-24 h-24 rounded-full bg-gradient-to-tr from-[#0c4a6e] to-[#0369a1] flex items-center justify-center z-10 border-4 border-white shadow-2xl transition-transform duration-500 ${isUserSpeaking ? 'scale-110' : 'scale-100'}`}>
+              <Mic size={32} className="text-white" />
             </div>
           </div>
-          <div className="w-full min-h-[80px] flex items-center justify-center px-4">
+
+          <div className="w-full min-h-[60px] flex items-center justify-center text-center">
             {error ? (
-              <div className="flex items-center gap-3 text-red-400 urdu-text bg-red-500/10 px-6 py-3 rounded-2xl border border-red-500/20">
-                <AlertCircle size={20} />
-                <span className="text-sm md:text-base">{error}</span>
-              </div>
+              <p className="text-red-500 urdu-text font-bold text-lg">{error}</p>
             ) : (
-              <p className="urdu-text text-center text-sky-50 font-medium leading-relaxed text-base md:text-2xl transition-all duration-300 drop-shadow-sm" dir="rtl">
+              <p className="urdu-text text-[#0c4a6e] font-black text-xl md:text-2xl drop-shadow-sm leading-relaxed" dir="rtl">
                 {transcription || (isUserSpeaking ? "سن رہا ہوں..." : "کچھ پوچھیں، میں حاضر ہوں...")}
               </p>
             )}
           </div>
         </div>
-        <div className="flex-1 overflow-y-auto px-6 md:px-12 py-6 space-y-5 no-scrollbar bg-black/20 border-t border-white/5">
+
+        {/* History Area */}
+        <div className="flex-1 overflow-y-auto px-6 py-6 space-y-4 no-scrollbar bg-white shadow-inner">
           {history.length === 0 && !transcription && (
-            <div className="h-full flex flex-col items-center justify-center opacity-10 space-y-4">
-              <MessageSquare size={64} className="text-sky-300" />
-              <p className="urdu-text text-sm md:text-lg">کوئی گفتگو نہیں ہوئی</p>
+            <div className="h-full flex flex-col items-center justify-center opacity-10 space-y-3">
+              <MessageSquare size={48} className="text-[#0369a1]" />
+              <p className="urdu-text font-bold">کوئی گفتگو نہیں ہوئی</p>
             </div>
           )}
           {history.map((item, idx) => (
-            <div key={idx} className={`flex ${item.role === 'user' ? 'justify-start' : 'justify-end'} animate-in fade-in slide-in-from-bottom-2`}>
-              <div className={`max-w-[90%] px-5 py-3 md:py-4 rounded-2xl md:rounded-3xl text-sm md:text-xl urdu-text leading-relaxed shadow-xl ${
-                item.role === 'user' ? 'bg-slate-800/80 text-sky-100 border border-white/5' : 'bg-sky-600/30 text-white border border-sky-400/30'
+            <div key={idx} className={`flex ${item.role === 'user' ? 'justify-start' : 'justify-end'} animate-in fade-in`}>
+              <div className={`max-w-[85%] px-4 py-2.5 rounded-2xl text-base urdu-text font-medium shadow-sm border ${
+                item.role === 'user' ? 'bg-slate-100 text-slate-800 border-slate-200' : 'bg-[#0369a1] text-white border-[#0c4a6e]'
               }`} dir="rtl">{item.text}</div>
             </div>
           ))}
           {transcription && (
             <div className={`flex ${isUserSpeaking ? 'justify-start' : 'justify-end'} animate-in fade-in`}>
-              <div className={`max-w-[90%] px-5 py-3 md:py-4 rounded-2xl md:rounded-3xl text-sm md:text-xl urdu-text leading-relaxed ${
-                isUserSpeaking ? 'bg-slate-700/40 text-sky-300 border border-sky-400/10' : 'bg-sky-500/20 text-sky-100 border border-sky-400/20'
+              <div className={`max-w-[85%] px-4 py-2.5 rounded-2xl text-base urdu-text font-bold border-2 border-dashed ${
+                isUserSpeaking ? 'bg-slate-50 border-slate-200 text-slate-500' : 'bg-sky-50 border-sky-200 text-[#0369a1]'
               }`} dir="rtl">{transcription}</div>
             </div>
           )}
-          <div ref={historyEndRef} className="h-4" />
+          <div ref={historyEndRef} className="h-2" />
         </div>
-        <div className="p-6 md:p-10 border-t border-white/5 shrink-0 bg-black/60">
-           <div className="flex flex-col items-center gap-3">
-              <p className="text-[14px] md:text-[20px] text-white font-black uppercase tracking-[0.2em] urdu-text text-center drop-shadow-md">
-                <span className="text-yellow-400">Qari Khalid Mahmood</span> Gold Medalist
-              </p>
-           </div>
+
+        {/* Footer */}
+        <div className="p-4 border-t border-slate-100 bg-slate-50 flex flex-col items-center gap-1 shrink-0">
+           <p className="text-[12px] text-[#0c4a6e] font-black uppercase tracking-widest text-center">
+             Global Research Centre
+           </p>
+           <p className="text-[10px] text-slate-500 urdu-text font-black text-center">
+             از قاری خالد محمود گولڈ میڈلسٹ
+           </p>
         </div>
       </div>
     </div>

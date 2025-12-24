@@ -1,9 +1,10 @@
 
-const CACHE_NAME = 'chat-grc-v5.0.0';
+const CACHE_NAME = 'chat-grc-v6.0.0';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
-  'https://img.icons8.com/fluency/96/sparkling-light.png'
+  'https://img.icons8.com/fluency/96/sparkling-light.png',
+  'https://fonts.googleapis.com/css2?family=Noto+Naskh+Arabic:wght@400;700&family=Noto+Sans+Arabic:wght@400;700&family=Inter:wght@400;600&display=swap'
 ];
 
 self.addEventListener('install', (event) => {
@@ -33,19 +34,15 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   const url = event.request.url;
 
-  // CRITICAL: Always skip cache for API requests to Google Generative AI
+  // CRITICAL: Skip cache for API requests
   if (url.includes('generativelanguage.googleapis.com')) {
     return; 
   }
 
-  // Network-first strategy for everything else to ensure stability
   event.respondWith(
     fetch(event.request).catch(() => {
       return caches.match(event.request).then((response) => {
-        if (response) return response;
-        if (event.request.mode === 'navigate') {
-          return caches.match('/');
-        }
+        return response || caches.match('/');
       });
     })
   );
