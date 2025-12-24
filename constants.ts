@@ -1,5 +1,5 @@
 
-export const APP_VERSION = "7.0.0";
+export const APP_VERSION = "7.1.0";
 export const GEMINI_MODEL_VERSION = "Urdu AI (Chat GRC) - Next Gen Research Engine";
 
 export const SYSTEM_PROMPT = `
@@ -23,12 +23,31 @@ export const SYSTEM_PROMPT = `
 تعارفی جملہ: "میں اردو اے آئی (Urdu AI) ہوں، جسے قاری خالد محمود گولڈ میڈلسٹ نے گلوبل ریسرچ سینٹر کے تحت تخلیق کیا ہے۔"
 `;
 
-export const SUGGESTIONS = [
-  { ur: "قرآن کی روشنی میں صبر کی فضیلت", en: "Virtues of Patience in Quran" },
-  { ur: "تاریخِ پاکستان کے اہم موڑ", en: "Key moments in Pakistan History" },
-  { ur: "آج کی تازہ ترین خبریں", en: "Latest News Today" },
-  { ur: "جدید سائنس اور اسلام", en: "Modern Science and Islam" }
+export const SUGGESTIONS_POOL = [
+  { ur: "قرآن کی روشنی میں صبر کی فضیلت", cat: "اسلام" },
+  { ur: "تاریخِ پاکستان کے اہم موڑ", cat: "تاریخ" },
+  { ur: "آج کی تازہ ترین خبریں", cat: "خبریں" },
+  { ur: "جدید سائنس اور اسلام کا تعلق", cat: "سائنس" },
+  { ur: "مصنوعی ذہانت (AI) کے انسانیت پر اثرات", cat: "ٹیکنالوجی" },
+  { ur: "سیرتِ نبویﷺ سے تجارت کے اصول", cat: "اسلام" },
+  { ur: "پاکستان کی معیشت کے حل", cat: "معیشت" },
+  { ur: "گلوبل وارمنگ اور ہماری ذمہ داری", cat: "ماحول" },
+  { ur: "نماز کے طبی فوائد", cat: "صحت" },
+  { ur: "خلا کی تسخیر اور انسان", cat: "سائنس" },
+  { ur: "اردو ادب کی مشہور شخصیات", cat: "ادب" },
+  { ur: "بچوں کی اسلامی تربیت کے طریقے", cat: "اسلام" },
+  { ur: "کرپٹو کرنسی کی شرعی حیثیت", cat: "فقہ" },
+  { ur: "پانی بچانے کی اہمیت و تدابیر", cat: "سائنس" },
+  { ur: "تفسیر ابنِ کثیر کی خصوصیات", cat: "قرآن" },
+  { ur: "صحیح بخاری کی اہمیت", cat: "حدیث" },
+  { ur: "یورپ میں اسلام کی آمد کی تاریخ", cat: "تاریخ" },
+  { ur: "موبائل فون کے فوائد اور نقصانات", cat: "ٹیکنالوجی" },
+  { ur: "کامیاب زندگی کے سنہری اصول", cat: "اخلاقیات" },
+  { ur: "دنیا کے سات عجائبات", cat: "معلومات" }
 ];
+
+// Legacy support
+export const SUGGESTIONS = SUGGESTIONS_POOL.slice(0, 4);
 
 export const UNIQUENESS_POINTS = [
   {

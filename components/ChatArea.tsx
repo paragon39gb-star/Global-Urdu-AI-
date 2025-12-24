@@ -3,7 +3,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Sparkles, ArrowUp, Mic, Paperclip, ChevronDown, Menu, Newspaper, Zap, Loader2, RefreshCcw, Award, Calendar, Radio } from 'lucide-react';
 import { MessageBubble } from './MessageBubble';
 import { ChatSession, Attachment, UserSettings } from '../types';
-import { UNIQUENESS_POINTS, SUGGESTIONS } from '../constants';
+import { UNIQUENESS_POINTS, SUGGESTIONS_POOL } from '../constants';
 
 interface ChatAreaProps {
   session: ChatSession | null;
@@ -39,10 +39,18 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
   const [isListeningInput, setIsListeningInput] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [currentDate, setCurrentDate] = useState('');
+  const [activeSuggestions, setActiveSuggestions] = useState<any[]>([]);
+  
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const recognitionRef = useRef<any>(null);
+
+  // Helper to get random suggestions
+  const refreshSuggestions = () => {
+    const shuffled = [...SUGGESTIONS_POOL].sort(() => 0.5 - Math.random());
+    setActiveSuggestions(shuffled.slice(0, 4));
+  };
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -55,6 +63,7 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
       setCurrentDate(new Intl.DateTimeFormat('ur-PK', options).format(now));
     };
     updateDate();
+    refreshSuggestions(); // Initial suggestions
     const interval = setInterval(updateDate, 60000);
     return () => clearInterval(interval);
   }, []);
@@ -80,6 +89,7 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
 
   const handleRefresh = () => {
     setIsRefreshing(true);
+    refreshSuggestions(); // Change bubbles on refresh
     onRefreshContext();
     setTimeout(() => setIsRefreshing(false), 800);
   };
@@ -124,7 +134,6 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
     }
   };
 
-  // Improved line height logic for Urdu scripts in the chat box
   const getLineHeight = () => {
     if (settings.fontFamily === 'nastaleeq') return '2.2';
     if (settings.fontFamily === 'naskh') return '1.8';
@@ -222,10 +231,10 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
       <footer className={`w-full shrink-0 pt-2 pb-4 md:pb-8 px-4 ${settings.highContrast ? 'bg-slate-950/80' : 'bg-gradient-to-t from-[#f8fafc] via-[#f8fafc]/90 to-transparent'}`}>
         <form onSubmit={handleSubmit} className="max-w-chat mx-auto relative">
           
-          {/* Quick Suggestions - Visible when input is empty */}
+          {/* Quick Suggestions - Dynamic Selection */}
           {input.length === 0 && !isLoading && (
             <div className="flex items-center gap-2 mb-3 overflow-x-auto no-scrollbar pb-1 px-1" dir="rtl">
-              {SUGGESTIONS.map((s, i) => (
+              {activeSuggestions.map((s, i) => (
                 <button
                   key={i}
                   type="button"

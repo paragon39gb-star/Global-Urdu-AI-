@@ -3,23 +3,23 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
 
-// Register Service Worker for PWA with enhanced safety checks
+// Safe Service Worker Registration for PWA
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    // Check if we are in a valid origin and secure context for Service Workers
+    // Check for localhost or HTTPS (Vercel provides HTTPS by default)
     const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
     const isSecure = window.location.protocol === 'https:';
 
     if (isSecure || isLocalhost) {
-      // Using a simple relative path is the most robust way to avoid origin/URL issues
-      navigator.serviceWorker.register('./sw.js')
+      // Register using a simple relative string path to avoid URL constructor issues
+      navigator.serviceWorker.register('./sw.js', { scope: './' })
         .then(reg => {
-          console.log('Urdu AI SW Registered successfully', reg.scope);
+          console.log('Urdu AI: PWA Ready (Service Worker Registered)');
+          // Check for updates automatically
           reg.update();
         })
         .catch(err => {
-          // Log only in dev or as a warning to prevent app crashing
-          console.warn('Urdu AI SW Registration bypassed:', err.message);
+          console.warn('Urdu AI: PWA registration skipped (Offline mode may be limited).');
         });
     }
   });
@@ -27,7 +27,7 @@ if ('serviceWorker' in navigator) {
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {
-  throw new Error("Critical Error: Root element not found in DOM.");
+  throw new Error("Critical Error: Root element not found.");
 }
 
 const root = ReactDOM.createRoot(rootElement);
