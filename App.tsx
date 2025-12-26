@@ -7,7 +7,6 @@ import { LoginModal } from './components/LoginModal';
 import { ChatSession, Message, Attachment, UserSettings, User, Contact } from './types';
 import { chatGRC } from './services/geminiService';
 import { NEWS_PROMPT, AI_UPDATES_PROMPT, MOCK_CONTACTS } from './constants';
-import { Rocket, ShieldAlert, Loader2 } from 'lucide-react';
 
 const App: React.FC = () => {
   const [sessions, setSessions] = useState<ChatSession[]>([]);
@@ -17,9 +16,6 @@ const App: React.FC = () => {
   const [showLiveMode, setShowLiveMode] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
-  const [isKeyReady, setIsKeyReady] = useState(false);
-  const [keyError, setKeyError] = useState(false);
-  const [isCheckingKey, setIsCheckingKey] = useState(true);
   
   const [selectedModel, setSelectedModel] = useState('gemini-3-pro-preview');
   const [customInstructions, setCustomInstructions] = useState('');
@@ -33,41 +29,23 @@ const App: React.FC = () => {
     voiceSpeed: 1.0
   });
 
+  // Background API Key validation (non-blocking)
   useEffect(() => {
-    const checkKey = async () => {
-      setIsCheckingKey(true);
+    const initKey = async () => {
       try {
-        const envKey = process.env.API_KEY;
-        const hasSelected = window.aistudio && await window.aistudio.hasSelectedApiKey();
-        
-        if (envKey && envKey.length > 5) {
-          setIsKeyReady(true);
-          setKeyError(false);
-        } else if (hasSelected) {
-          setIsKeyReady(true);
-          setKeyError(false);
-        } else {
-          setKeyError(true);
+        if (window.aistudio) {
+          const hasKey = await window.aistudio.hasSelectedApiKey();
+          if (!hasKey && !process.env.API_KEY) {
+            // Only trigger if no environment key exists
+            console.warn("API Key might be missing.");
+          }
         }
       } catch (e) {
-        if (process.env.API_KEY) setIsKeyReady(true);
-        else setKeyError(true);
-      } finally {
-        setIsCheckingKey(false);
+        console.error("Key init error", e);
       }
     };
-    checkKey();
+    initKey();
   }, []);
-
-  const handleOpenKeyDialog = async () => {
-    if (window.aistudio) {
-      await window.aistudio.openSelectKey();
-      setIsKeyReady(true);
-      setKeyError(false);
-    } else {
-      alert("براہ کرم ورسل میں API_KEY اینوائرنمنٹ ویری ایبل چیک کریں۔");
-    }
-  };
 
   useEffect(() => {
     const handler = (e: any) => {
@@ -171,7 +149,6 @@ const App: React.FC = () => {
 
     const isFirstMessage = currentSession.messages.length === 0;
     
-    // Clear suggestions from all previous messages to keep UI clean
     setSessions(prev => prev.map(s => 
       s.id === currentSessionId 
         ? { ...s, messages: s.messages.map(m => ({ ...m, suggestions: undefined })) }
@@ -250,7 +227,6 @@ const App: React.FC = () => {
         { role: 'assistant', content: fullResponse }
       ]);
       
-      // Update the assistant message with its suggestions
       setSessions(prev => prev.map(s => 
         s.id === currentSessionId 
           ? { 
@@ -265,6 +241,12 @@ const App: React.FC = () => {
     } catch (error: any) {
       console.error("Chat Error:", error);
       let errorMessage = "معذرت! جواب موصول کرنے میں دشواری پیش آئی۔";
+      
+      if (error.message?.includes("API key not valid") || error.message?.includes("API_KEY")) {
+        errorMessage = "API Key درست نہیں یا غائب ہے۔ براہ کرم ماحول چیک کریں۔";
+      } else if (error.message?.includes("Safety")) {
+        errorMessage = "معذرت، یہ مواد ہماری پالیسی کے مطابق نہیں ہے۔";
+      }
       
       setSessions(prev => prev.map(s => 
         s.id === currentSessionId 
@@ -314,37 +296,6 @@ const App: React.FC = () => {
       default: return 'urdu-font-sans';
     }
   };
-
-  if (isCheckingKey) {
-    return (
-      <div className="flex h-screen w-full items-center justify-center bg-slate-950">
-        <Loader2 className="w-10 h-10 text-sky-500 animate-spin" />
-      </div>
-    );
-  }
-
-  if (!isKeyReady && keyError) {
-    return (
-      <div className="flex h-screen w-full items-center justify-center bg-slate-900 p-6 text-center">
-        <div className="max-w-md space-y-6">
-          <div className="w-20 h-20 bg-sky-500/20 rounded-full flex items-center justify-center mx-auto mb-4 border border-sky-500/30">
-            <ShieldAlert size={40} className="text-sky-400" />
-          </div>
-          <h1 className="text-3xl font-black text-white urdu-text">سروس فعال کریں</h1>
-          <p className="text-sky-100/70 urdu-text leading-relaxed">
-            اردو اے آئی کو استعمال کرنے کے لیے اے پی آئی کی (API Key) کا انتخاب ضروری ہے۔ اگر آپ ورسل پر ہیں تو یقینی بنائیں کہ API_KEY موجود ہے۔
-          </p>
-          <button 
-            onClick={handleOpenKeyDialog}
-            className="w-full bg-sky-500 hover:bg-sky-400 text-white font-black py-4 rounded-2xl flex items-center justify-center gap-2 shadow-xl transition-all active:scale-95"
-          >
-            <Rocket size={20} />
-            <span className="urdu-text text-xl">لانچ کریں (Launch)</span>
-          </button>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className={`flex h-screen w-full overflow-hidden ${getFontClass()}`}>
