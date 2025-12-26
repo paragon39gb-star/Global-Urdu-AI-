@@ -13,14 +13,14 @@ class ChatGRCService {
 
   private getUpdatedSystemPrompt() {
     const now = new Date();
-    const gregDate = new Intl.DateTimeFormat('ur-PK-u-nu-latn', { 
+    const dayName = new Intl.DateTimeFormat('ur-PK', { weekday: 'long' }).format(now);
+    const gregDate = new Intl.DateTimeFormat('ur-PK', { 
       day: 'numeric', 
       month: 'long', 
       year: 'numeric' 
     }).format(now);
     
-    const dayName = new Intl.DateTimeFormat('ur-PK', { weekday: 'long' }).format(now);
-    const dateContext = `موجودہ عیسوی تاریخ: ${gregDate}\nدن: ${dayName}`;
+    const dateContext = `موجودہ عیسوی تاریخ: ${dayName}، ${gregDate}`;
     return `${SYSTEM_PROMPT}\n\n[CONTEXT_UPDATE]\n${dateContext}\n[/CONTEXT_UPDATE]`;
   }
 

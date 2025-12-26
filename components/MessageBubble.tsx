@@ -1,6 +1,6 @@
 
 import React, { useMemo, useState, useRef, useEffect } from 'react';
-import { Sparkles, User, Copy, Check, Share2, Volume2, Pause, Loader2, Award, ExternalLink, MessageCircle } from 'lucide-react';
+import { Sparkles, User, Copy, Check, Share2, Volume2, Pause, Loader2, Award, ExternalLink, MessageCircle, ChevronRight } from 'lucide-react';
 import { Message, UserSettings, Contact } from '../types';
 import { marked } from 'marked';
 import { chatGRC } from '../services/geminiService';
@@ -9,11 +9,12 @@ interface MessageBubbleProps {
   message: Message;
   settings: UserSettings;
   contact?: Contact | null;
+  onSuggestionClick?: (suggestion: string) => void;
 }
 
 type AudioState = 'idle' | 'loading' | 'playing' | 'paused';
 
-export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, settings, contact }) => {
+export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, settings, contact, onSuggestionClick }) => {
   const isAssistant = message.role === 'assistant';
   const [copied, setCopied] = useState(false);
   const [audioState, setAudioState] = useState<AudioState>('idle');
@@ -25,6 +26,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, settings,
   const offsetRef = useRef<number>(0);
   
   const sources = message.sources || [];
+  const suggestions = message.suggestions || [];
   const isUrdu = /[\u0600-\u06FF]/.test(message.content);
 
   const htmlContent = useMemo(() => {
@@ -180,7 +182,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, settings,
           />
         </div>
 
-        {sources.length > 0 && (
+        {isAssistant && sources.length > 0 && (
           <div className={`w-full mt-4 rounded-3xl p-5 shadow-inner border animate-in fade-in duration-500 ${settings.highContrast ? 'bg-slate-900/50 border-slate-800' : 'bg-slate-100/50 border-slate-200'}`} dir="rtl">
             <div className="flex items-center gap-2 mb-4">
               <div className="w-2 h-2 rounded-full bg-[#0369a1] animate-pulse"></div>
@@ -198,6 +200,26 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, settings,
                   <span className="truncate flex-1 text-right font-black ml-3">{s.title}</span>
                   <ExternalLink className="w-3.5 h-3.5 opacity-40 group-hover:opacity-100 shrink-0 transition-opacity" />
                 </a>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {isAssistant && suggestions.length > 0 && (
+          <div className="w-full mt-6 space-y-3 animate-in fade-in slide-in-from-bottom-2 duration-700" dir="rtl">
+            <div className="flex items-center gap-2 px-1">
+              <ChevronRight size={16} className="text-[#0369a1]" />
+              <p className="urdu-text font-black text-[#0c4a6e] text-sm">مزید دریافت کریں:</p>
+            </div>
+            <div className="flex flex-col gap-2">
+              {suggestions.map((s, idx) => (
+                <button 
+                  key={idx}
+                  onClick={() => onSuggestionClick?.(s)}
+                  className={`w-full text-right px-5 py-3.5 rounded-2xl border transition-all active:scale-[0.98] urdu-text text-sm font-bold shadow-sm ${settings.highContrast ? 'bg-slate-900 border-slate-700 text-sky-300 hover:bg-slate-800' : 'bg-white border-slate-200 text-[#0369a1] hover:border-[#0369a1] hover:bg-sky-50'}`}
+                >
+                  {s}
+                </button>
               ))}
             </div>
           </div>

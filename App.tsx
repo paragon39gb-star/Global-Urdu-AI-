@@ -17,12 +17,10 @@ const App: React.FC = () => {
   const [showLiveMode, setShowLiveMode] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
-  const [suggestions, setSuggestions] = useState<string[]>([]);
   const [isKeyReady, setIsKeyReady] = useState(false);
   const [keyError, setKeyError] = useState(false);
   const [isCheckingKey, setIsCheckingKey] = useState(true);
   
-  // Rule: Use gemini-3-pro-preview for complex research tasks.
   const [selectedModel, setSelectedModel] = useState('gemini-3-pro-preview');
   const [customInstructions, setCustomInstructions] = useState('');
   const [settings, setSettings] = useState<UserSettings>({
@@ -35,12 +33,10 @@ const App: React.FC = () => {
     voiceSpeed: 1.0
   });
 
-  // Check for API Key selection on startup
   useEffect(() => {
     const checkKey = async () => {
       setIsCheckingKey(true);
       try {
-        // Rule: If process.env.API_KEY is defined and not empty, use it.
         const envKey = process.env.API_KEY;
         const hasSelected = window.aistudio && await window.aistudio.hasSelectedApiKey();
         
@@ -54,7 +50,6 @@ const App: React.FC = () => {
           setKeyError(true);
         }
       } catch (e) {
-        // Fallback for unexpected issues
         if (process.env.API_KEY) setIsKeyReady(true);
         else setKeyError(true);
       } finally {
@@ -70,7 +65,6 @@ const App: React.FC = () => {
       setIsKeyReady(true);
       setKeyError(false);
     } else {
-      // In normal browser, if key is missing, prompt to check env
       alert("براہ کرم ورسل میں API_KEY اینوائرنمنٹ ویری ایبل چیک کریں۔");
     }
   };
@@ -85,10 +79,7 @@ const App: React.FC = () => {
   }, []);
 
   const handleInstall = async () => {
-    if (!deferredPrompt) {
-      alert("براؤزر پہلے ہی انسٹال ہے یا فیچر سپورٹ نہیں کر رہا۔");
-      return;
-    }
+    if (!deferredPrompt) return;
     deferredPrompt.prompt();
     const { outcome } = await deferredPrompt.userChoice;
     if (outcome === 'accepted') setDeferredPrompt(null);
@@ -106,7 +97,6 @@ const App: React.FC = () => {
     };
     setSessions(prev => [newSession, ...prev]);
     setCurrentSessionId(newId);
-    setSuggestions([]);
     chatGRC.resetChat();
   }, [selectedModel]);
 
@@ -180,8 +170,14 @@ const App: React.FC = () => {
     if (!currentSessionId || !currentSession) return;
 
     const isFirstMessage = currentSession.messages.length === 0;
-    setSuggestions([]); 
     
+    // Clear suggestions from all previous messages to keep UI clean
+    setSessions(prev => prev.map(s => 
+      s.id === currentSessionId 
+        ? { ...s, messages: s.messages.map(m => ({ ...m, suggestions: undefined })) }
+        : s
+    ));
+
     const userMessage: Message = {
       id: Date.now().toString(),
       role: 'user',
@@ -201,7 +197,6 @@ const App: React.FC = () => {
     ));
 
     setIsLoading(true);
-    // Fix: Move assistantMessageId declaration here to make it accessible in the catch block.
     const assistantMessageId = (Date.now() + 1).toString();
     try {
       const assistantMessage: Message = {
@@ -254,21 +249,22 @@ const App: React.FC = () => {
         userMessage,
         { role: 'assistant', content: fullResponse }
       ]);
-      setSuggestions(newSuggestions);
+      
+      // Update the assistant message with its suggestions
+      setSessions(prev => prev.map(s => 
+        s.id === currentSessionId 
+          ? { 
+              ...s, 
+              messages: s.messages.map(m => 
+                m.id === assistantMessageId ? { ...m, suggestions: newSuggestions } : m
+              ) 
+            } 
+          : s
+      ));
       
     } catch (error: any) {
       console.error("Chat Error:", error);
       let errorMessage = "معذرت! جواب موصول کرنے میں دشواری پیش آئی۔";
-      
-      if (error.message?.includes("API key not valid")) {
-        errorMessage = "API Key درست نہیں ہے۔ براہ کرم چابی دوبارہ منتخب کریں۔";
-      } else if (error.message?.includes("Requested entity was not found")) {
-        errorMessage = "ماڈل دستیاب نہیں یا کی ختم ہو چکی ہے۔";
-        setKeyError(true);
-        setIsKeyReady(false);
-      } else if (error.message?.includes("Safety")) {
-        errorMessage = "یہ سوال پالیسی کے خلاف ہو سکتا ہے۔ براہ کرم لفظ تبدیل کریں۔";
-      }
       
       setSessions(prev => prev.map(s => 
         s.id === currentSessionId 
@@ -384,7 +380,6 @@ const App: React.FC = () => {
         settings={settings}
         onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
         onRefreshContext={() => { chatGRC.resetChat(); createNewChat(); }}
-        suggestions={suggestions}
       />
       {showLiveMode && <LiveMode settings={settings} onClose={() => setShowLiveMode(false)} />}
       {showLoginModal && (

@@ -28,6 +28,7 @@ export interface Message {
   timestamp: number;
   attachments?: Attachment[];
   sources?: GroundingSource[];
+  suggestions?: string[]; // Added for Perplexity-like follow-ups
 }
 
 export interface ChatSession {
