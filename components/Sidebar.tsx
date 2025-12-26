@@ -1,14 +1,15 @@
 
 import React, { useState } from 'react';
-import { Plus, MessageSquare, Trash2, X, Type, Volume2, Accessibility, MessageCircle, Sparkles, Info, LogOut, User as UserIcon, LogIn, Download, BookOpen, RefreshCw, CheckCircle2, Award, History, RotateCcw, HelpCircle, Minus } from 'lucide-react';
-import { ChatSession, UserSettings } from '../types';
-import { ABOUT_TEXT, USAGE_PROCEDURE_TEXT, APP_VERSION } from '../constants';
+import { Plus, MessageSquare, Trash2, X, Type, Volume2, Accessibility, MessageCircle, Sparkles, Info, LogOut, User as UserIcon, LogIn, Download, BookOpen, RefreshCw, CheckCircle2, Award, History, RotateCcw, HelpCircle, Minus, Users, ExternalLink } from 'lucide-react';
+import { ChatSession, UserSettings, Contact } from '../types';
+import { ABOUT_TEXT, USAGE_PROCEDURE_TEXT, APP_VERSION, MOCK_CONTACTS, WHATSAPP_LINK, OFFICIAL_WHATSAPP_NUMBER } from '../constants';
 
 interface SidebarProps {
   sessions: ChatSession[];
   activeId: string | null;
   onSelect: (id: string) => void;
   onNewChat: () => void;
+  onSelectContact: (contact: Contact) => void;
   onDelete: (id: string) => void;
   isOpen: boolean;
   setIsOpen: (open: boolean) => void;
@@ -27,6 +28,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   activeId,
   onSelect,
   onNewChat,
+  onSelectContact,
   onDelete,
   isOpen,
   setIsOpen,
@@ -37,7 +39,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onSendFeedback,
   onInstall
 }) => {
-  const [activePopover, setActivePopover] = useState<'about' | 'usage' | null>(null);
+  const [activePopover, setActivePopover] = useState<'about' | 'usage' | 'whatsapp' | null>(null);
 
   const toggleHighContrast = () => setSettings({...settings, highContrast: !settings.highContrast});
   
@@ -57,7 +59,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   return (
     <>
-      {/* Mobile Backdrop */}
       {isOpen && (
         <div 
           className="fixed inset-0 bg-slate-950/70 backdrop-blur-md z-30 lg:hidden animate-in fade-in duration-300" 
@@ -101,42 +102,74 @@ export const Sidebar: React.FC<SidebarProps> = ({
               </div>
               <Sparkles size={16} className="text-yellow-300" />
             </button>
-
-            {onInstall && (
-              <button 
-                onClick={onInstall}
-                className={`w-full flex items-center gap-3 px-4 py-3 font-black rounded-2xl transition-all active:scale-95 border ${settings.highContrast ? 'bg-emerald-600/20 text-emerald-300 border-emerald-500/30' : 'bg-emerald-500/20 text-emerald-300 border-emerald-500/20'}`}
-              >
-                <Download size={18} />
-                <span className="urdu-text text-sm">ایپ انسٹال کریں</span>
-              </button>
-            )}
           </div>
 
-          <div className="flex-1 overflow-y-auto px-4 space-y-2 no-scrollbar py-2 overscroll-contain">
-            <div className="px-2 mb-2 flex items-center gap-2 opacity-50">
-              <History size={12} className="text-white" />
-              <span className="text-[10px] font-black text-white uppercase tracking-widest urdu-text">سابقہ تحقیق</span>
-            </div>
+          <div className="flex-1 overflow-y-auto px-4 space-y-6 no-scrollbar py-2 overscroll-contain">
             
-            {sessions.length === 0 ? (
-              <div className="py-8 text-center opacity-30">
-                <p className="urdu-text text-xs text-white">کوئی گفتگو موجود نہیں</p>
+            {/* WhatsApp Direct Bot Section */}
+            <div className="px-1">
+              <button 
+                onClick={() => setActivePopover('whatsapp')}
+                className="w-full p-4 rounded-2xl bg-gradient-to-tr from-[#128C7E] to-[#25D366] text-white shadow-xl relative overflow-hidden group transition-all active:scale-95"
+              >
+                <div className="absolute top-0 right-0 p-2 opacity-20 group-hover:scale-125 transition-transform">
+                  <MessageCircle size={40} />
+                </div>
+                <div className="relative z-10 text-right" dir="rtl">
+                  <h4 className="font-black urdu-text text-sm">واٹس ایپ پر استعمال</h4>
+                  <p className="text-[10px] opacity-90 urdu-text font-bold">براہ راست میسجنگ کے لیے کلک کریں</p>
+                </div>
+              </button>
+            </div>
+
+            <div className="space-y-2">
+              <div className="px-2 mb-2 flex items-center gap-2 opacity-50">
+                <Users size={12} className="text-white" />
+                <span className="text-[10px] font-black text-white uppercase tracking-widest urdu-text">علمی شخصیات (DM)</span>
               </div>
-            ) : (
-              sessions.map(session => (
+              {MOCK_CONTACTS.map(contact => (
                 <button 
-                  key={session.id} 
-                  onClick={() => { onSelect(session.id); if (window.innerWidth < 1024) setIsOpen(false); }}
-                  className={`w-full group flex items-center gap-3 px-4 py-3.5 rounded-xl transition-all border text-right ${activeId === session.id ? 'bg-white/20 border-white/20 text-white shadow-xl translate-x-1' : 'hover:bg-white/5 text-white/50 border-transparent'} active:scale-[0.98]`}
+                  key={contact.id}
+                  onClick={() => onSelectContact(contact)}
+                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all hover:bg-white/10 border border-transparent active:scale-[0.98] group"
                 >
-                  <div className="flex-1 truncate text-xs urdu-text font-bold" dir="rtl">{session.title || "نئی گفتگو"}</div>
-                  <button onClick={(e) => { e.stopPropagation(); onDelete(session.id); }} className="opacity-0 group-hover:opacity-100 p-1.5 text-white/30 hover:text-red-400 rounded-lg transition-all">
-                    <Trash2 size={12} />
-                  </button>
+                  <div className="relative shrink-0">
+                    <img src={contact.avatar} alt={contact.name} className="w-10 h-10 rounded-full border border-white/20 shadow-md" />
+                    <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 rounded-full border-2 border-[#0c4a6e]" title="آن لائن" />
+                  </div>
+                  <div className="flex-1 flex flex-col items-end min-w-0" dir="rtl">
+                    <span className="text-[13px] font-black text-white urdu-text truncate w-full">{contact.name}</span>
+                    <span className="text-[10px] text-white/40 urdu-text truncate w-full">{contact.description}</span>
+                  </div>
                 </button>
-              ))
-            )}
+              ))}
+            </div>
+
+            <div className="space-y-2">
+              <div className="px-2 mb-2 flex items-center gap-2 opacity-50">
+                <History size={12} className="text-white" />
+                <span className="text-[10px] font-black text-white uppercase tracking-widest urdu-text">سابقہ تحقیق</span>
+              </div>
+              
+              {sessions.length === 0 ? (
+                <div className="py-4 text-center opacity-30">
+                  <p className="urdu-text text-xs text-white">کوئی گفتگو موجود نہیں</p>
+                </div>
+              ) : (
+                sessions.filter(s => !s.contactId).map(session => (
+                  <button 
+                    key={session.id} 
+                    onClick={() => { onSelect(session.id); if (window.innerWidth < 1024) setIsOpen(false); }}
+                    className={`w-full group flex items-center gap-3 px-4 py-3 rounded-xl transition-all border text-right ${activeId === session.id ? 'bg-white/20 border-white/20 text-white shadow-xl translate-x-1' : 'hover:bg-white/5 text-white/50 border-transparent'} active:scale-[0.98]`}
+                  >
+                    <div className="flex-1 truncate text-xs urdu-text font-bold" dir="rtl">{session.title || "نئی گفتگو"}</div>
+                    <button onClick={(e) => { e.stopPropagation(); onDelete(session.id); }} className="opacity-0 group-hover:opacity-100 p-1.5 text-white/30 hover:text-red-400 rounded-lg transition-all">
+                      <Trash2 size={12} />
+                    </button>
+                  </button>
+                ))
+              )}
+            </div>
           </div>
 
           <div className={`p-4 border-t space-y-3 ${settings.highContrast ? 'border-slate-800 bg-black/40' : 'border-white/10 bg-black/20'}`}>
@@ -153,10 +186,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   <Plus size={16} />
                 </button>
               </div>
-              <button onClick={toggleHighContrast} className={`w-full p-2.5 rounded-xl flex items-center justify-center gap-2 transition-all border active:scale-95 ${settings.highContrast ? 'bg-white text-slate-900 border-white' : 'bg-white/5 text-white/70 border-white/10'}`}>
-                <Accessibility size={16} />
-                <span className="text-[10px] urdu-text font-black">ڈارک موڈ</span>
-              </button>
             </div>
 
             <div className="flex gap-1.5">
@@ -172,20 +201,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
               </button>
             </div>
 
-            <button onClick={() => setActivePopover('about')} className="w-full flex items-center gap-3 px-4 py-3 text-xs rounded-xl transition-all text-white bg-white/5 hover:bg-white/10 border border-white/10 active:scale-[0.98]">
-              <Info size={16} className="text-sky-300" />
-              <span className="urdu-text flex-1 text-right font-black" dir="rtl">تعارف (About)</span>
-            </button>
-
             <button onClick={onSendFeedback} className="w-full flex items-center gap-3 px-4 py-3 text-xs rounded-xl transition-all text-white bg-[#25D366]/20 hover:bg-[#25D366]/30 border border-[#25D366]/20 active:scale-[0.98]">
               <MessageCircle size={16} className="text-[#25D366]" />
               <span className="urdu-text flex-1 text-right font-black" dir="rtl">رائے دیں (WhatsApp)</span>
             </button>
-            
-            <div className="pt-1 flex flex-col items-center gap-0.5 opacity-30">
-               <div className="text-[8px] text-white font-black uppercase tracking-widest">Urdu AI • Version {APP_VERSION}</div>
-               <div className="text-[8px] text-white/60 urdu-text">گلوبل ریسرچ سینٹر</div>
-            </div>
           </div>
 
           {activePopover && (
@@ -195,16 +214,41 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   <X size={24} />
                 </button>
                 <h3 className="text-lg font-black urdu-text text-white">
-                  {activePopover === 'usage' ? 'طریقہ استعمال' : 'Urdu AI کا تعارف'}
+                  {activePopover === 'usage' ? 'طریقہ استعمال' : activePopover === 'whatsapp' ? 'واٹس ایپ سروس' : 'Urdu AI کا تعارف'}
                 </h3>
               </div>
               <div className="flex-1 overflow-y-auto p-6 md:p-8 no-scrollbar">
-                <div className="urdu-text text-base md:text-lg leading-[2] text-right text-sky-100 whitespace-pre-wrap" dir="rtl">
-                  {activePopover === 'usage' ? USAGE_PROCEDURE_TEXT : ABOUT_TEXT}
-                </div>
-              </div>
-              <div className="p-6 border-t border-white/10 flex justify-center">
-                <button onClick={() => setActivePopover(null)} className="px-8 py-3 bg-white text-[#0c4a6e] font-black rounded-xl urdu-text transition-all active:scale-95 shadow-xl">سمجھ گیا</button>
+                {activePopover === 'whatsapp' ? (
+                  <div className="flex flex-col items-center justify-center space-y-8 text-center" dir="rtl">
+                    <div className="w-24 h-24 bg-emerald-500 rounded-full flex items-center justify-center shadow-xl">
+                      <MessageCircle size={56} className="text-white fill-current" />
+                    </div>
+                    <div className="space-y-4">
+                      <h4 className="text-2xl font-black text-white urdu-text">واٹس ایپ پر تحقیق کریں</h4>
+                      <p className="text-sky-100 urdu-text leading-loose">
+                        آپ اردو اے آئی کی تحقیقی خدمات براہ راست واٹس ایپ پر بھی حاصل کر سکتے ہیں۔ بس نیچے دیے گئے بٹن پر کلک کریں اور اپنا سوال واٹس ایپ پر بھیجیں۔
+                      </p>
+                      <div className="p-4 bg-white/10 rounded-2xl border border-white/10">
+                        <p className="text-xs text-sky-300 font-mono mb-1">آفیشل نمبر</p>
+                        <p className="text-xl font-black text-white">{OFFICIAL_WHATSAPP_NUMBER}</p>
+                      </div>
+                      <a 
+                        href={WHATSAPP_LINK}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="w-full flex items-center justify-center gap-3 p-5 rounded-2xl bg-emerald-500 hover:bg-emerald-400 text-white font-black urdu-text text-xl shadow-2xl transition-all active:scale-95"
+                      >
+                        <MessageCircle size={24} />
+                        <span>واٹس ایپ اوپن کریں</span>
+                        <ExternalLink size={18} />
+                      </a>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="urdu-text text-base md:text-lg leading-[2] text-right text-sky-100 whitespace-pre-wrap" dir="rtl">
+                    {activePopover === 'usage' ? USAGE_PROCEDURE_TEXT : ABOUT_TEXT}
+                  </div>
+                )}
               </div>
             </div>
           )}

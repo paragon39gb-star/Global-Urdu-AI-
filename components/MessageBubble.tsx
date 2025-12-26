@@ -1,18 +1,19 @@
 
 import React, { useMemo, useState, useRef, useEffect } from 'react';
-import { Sparkles, User, Copy, Check, Share2, Volume2, Pause, Loader2, Award, ExternalLink } from 'lucide-react';
-import { Message, UserSettings } from '../types';
+import { Sparkles, User, Copy, Check, Share2, Volume2, Pause, Loader2, Award, ExternalLink, MessageCircle } from 'lucide-react';
+import { Message, UserSettings, Contact } from '../types';
 import { marked } from 'marked';
 import { chatGRC } from '../services/geminiService';
 
 interface MessageBubbleProps {
   message: Message;
   settings: UserSettings;
+  contact?: Contact | null;
 }
 
 type AudioState = 'idle' | 'loading' | 'playing' | 'paused';
 
-export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, settings }) => {
+export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, settings, contact }) => {
   const isAssistant = message.role === 'assistant';
   const [copied, setCopied] = useState(false);
   const [audioState, setAudioState] = useState<AudioState>('idle');
@@ -47,6 +48,11 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, settings 
     navigator.clipboard.writeText(message.content);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleWhatsAppShare = () => {
+    const text = encodeURIComponent(`*Urdu AI Research*\n\n${message.content}\n\n_GRC - قاری خالد محمود گولڈ میڈلسٹ_`);
+    window.open(`https://wa.me/?text=${text}`, '_blank');
   };
 
   const handleShare = async () => {
@@ -136,21 +142,26 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, settings 
 
   return (
     <div className={`w-full flex gap-3 md:gap-5 px-1 py-5 animate-bubble ${isAssistant ? 'justify-start' : 'flex-row-reverse'}`}>
-      {/* Icon Wrapper */}
-      <div className={`w-10 h-10 md:w-12 md:h-12 rounded-2xl flex items-center justify-center shrink-0 shadow-lg border-2 transition-transform duration-300 hover:scale-110 ${isAssistant ? 'bg-gradient-to-br from-[#0369a1] to-[#075985] border-white/20' : 'bg-white border-slate-200'}`}>
-        {isAssistant ? <Sparkles className="text-white w-6 h-6" /> : <User className="text-[#0369a1] w-6 h-6" />}
+      <div className={`w-10 h-10 md:w-12 md:h-12 rounded-2xl flex items-center justify-center shrink-0 shadow-lg border-2 transition-transform duration-300 hover:scale-110 ${isAssistant ? (contact ? 'bg-transparent border-transparent' : 'bg-gradient-to-br from-[#0369a1] to-[#075985] border-white/20') : 'bg-white border-slate-200'}`}>
+        {isAssistant ? (
+          contact ? (
+            <img src={contact.avatar} alt={contact.name} className="w-full h-full rounded-2xl border-2 border-emerald-500/20" />
+          ) : (
+            <Sparkles className="text-white w-6 h-6" />
+          )
+        ) : (
+          <User className="text-[#0369a1] w-6 h-6" />
+        )}
       </div>
 
       <div className={`flex flex-col space-y-2.5 max-w-[88%] md:max-w-[82%] ${isAssistant ? 'items-start' : 'items-end'}`}>
-        {/* Label Row */}
         {isAssistant && (
           <div className="flex items-center gap-2 mb-0.5 px-1 opacity-80">
-             <span className="text-[10px] md:text-[12px] font-black urdu-text text-[#075985] uppercase tracking-wider">تحقیقی جواب</span>
-             <Award className="w-3.5 h-3.5 text-yellow-600" />
+             <span className="text-[10px] md:text-[12px] font-black urdu-text text-[#075985] uppercase tracking-wider">{contact ? contact.name : 'تحقیقی جواب'}</span>
+             {contact ? <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" /> : <Award className="w-3.5 h-3.5 text-yellow-600" />}
           </div>
         )}
         
-        {/* Main Content Bubble */}
         <div 
           className={`relative overflow-hidden rounded-3xl transition-all duration-300 ${isUrdu ? 'urdu-text text-right' : 'text-left'} ${
             isAssistant 
@@ -169,7 +180,6 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, settings 
           />
         </div>
 
-        {/* Sources Section */}
         {sources.length > 0 && (
           <div className={`w-full mt-4 rounded-3xl p-5 shadow-inner border animate-in fade-in duration-500 ${settings.highContrast ? 'bg-slate-900/50 border-slate-800' : 'bg-slate-100/50 border-slate-200'}`} dir="rtl">
             <div className="flex items-center gap-2 mb-4">
@@ -193,9 +203,8 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, settings 
           </div>
         )}
 
-        {/* Action Buttons Row */}
         {isAssistant && message.content && (
-          <div className="flex items-center gap-3 pt-2.5 px-1">
+          <div className="flex items-center gap-2 md:gap-3 pt-2.5 px-1 flex-wrap">
             <button 
               onClick={handleSpeak} 
               disabled={audioState === 'loading'} 
@@ -204,6 +213,14 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, settings 
               {audioState === 'loading' ? <Loader2 className="w-4 h-4 animate-spin" /> : 
                audioState === 'playing' ? <Pause className="w-4 h-4 fill-current" /> : <Volume2 className="w-4 h-4" />}
               <span>{audioState === 'playing' ? 'روکیں' : 'آواز'}</span>
+            </button>
+
+            <button 
+              onClick={handleWhatsAppShare}
+              className="flex items-center gap-2 px-4 py-2 rounded-full bg-[#25D366] text-white shadow-lg active:scale-95 transition-all text-[11px] md:text-[13px] font-black urdu-text"
+            >
+              <MessageCircle className="w-4 h-4 fill-current" />
+              <span>واٹس ایپ</span>
             </button>
 
             <div className="flex items-center gap-1.5 bg-white/60 backdrop-blur-md rounded-full p-1.5 border border-slate-100 shadow-sm">

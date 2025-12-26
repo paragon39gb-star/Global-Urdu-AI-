@@ -4,9 +4,9 @@ import { Sidebar } from './components/Sidebar';
 import { ChatArea } from './components/ChatArea';
 import { LiveMode } from './components/LiveMode';
 import { LoginModal } from './components/LoginModal';
-import { ChatSession, Message, Attachment, UserSettings, User } from './types';
+import { ChatSession, Message, Attachment, UserSettings, User, Contact } from './types';
 import { chatGRC } from './services/geminiService';
-import { NEWS_PROMPT, AI_UPDATES_PROMPT } from './constants';
+import { NEWS_PROMPT, AI_UPDATES_PROMPT, MOCK_CONTACTS } from './constants';
 
 const App: React.FC = () => {
   const [sessions, setSessions] = useState<ChatSession[]>([]);
@@ -16,6 +16,7 @@ const App: React.FC = () => {
   const [showLiveMode, setShowLiveMode] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [suggestions, setSuggestions] = useState<string[]>([]);
   
   const [selectedModel, setSelectedModel] = useState('gemini-3-flash-preview');
   const [customInstructions, setCustomInstructions] = useState('');
@@ -60,8 +61,34 @@ const App: React.FC = () => {
     };
     setSessions(prev => [newSession, ...prev]);
     setCurrentSessionId(newId);
+    setSuggestions([]);
     chatGRC.resetChat();
   }, [selectedModel]);
+
+  const startChatWithContact = (contact: Contact) => {
+    // Check if session with this contact already exists
+    const existing = sessions.find(s => s.contactId === contact.id);
+    if (existing) {
+      setCurrentSessionId(existing.id);
+      setIsSidebarOpen(false);
+      return;
+    }
+
+    const newId = `contact_${contact.id}_${Date.now()}`;
+    const newSession: ChatSession = {
+      id: newId,
+      title: contact.name,
+      messages: [],
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+      model: selectedModel,
+      contactId: contact.id
+    };
+    setSessions(prev => [newSession, ...prev]);
+    setCurrentSessionId(newId);
+    setIsSidebarOpen(false);
+    chatGRC.resetChat();
+  };
 
   useEffect(() => {
     const savedInstructions = localStorage.getItem('chat_grc_custom_instructions');
@@ -70,7 +97,6 @@ const App: React.FC = () => {
     if (savedSettings) {
       try { 
         const parsed = JSON.parse(savedSettings);
-        // Migration check for old string-based fontSize
         if (typeof parsed.fontSize === 'string') {
           parsed.fontSize = parsed.fontSize === 'large' ? 22 : 18;
         }
@@ -107,8 +133,11 @@ const App: React.FC = () => {
   const currentSession = sessions.find(s => s.id === currentSessionId) || null;
 
   const handleSendMessage = async (content: string, attachments: Attachment[] = []) => {
-    if (!currentSessionId) return;
+    if (!currentSessionId || !currentSession) return;
 
+    const isFirstMessage = currentSession.messages.length === 0;
+    setSuggestions([]); 
+    
     const userMessage: Message = {
       id: Date.now().toString(),
       role: 'user',
@@ -122,8 +151,7 @@ const App: React.FC = () => {
         ? { 
             ...s, 
             messages: [...s.messages, userMessage], 
-            updatedAt: Date.now(), 
-            title: s.messages.length === 0 ? content.slice(0, 30) : s.title 
+            updatedAt: Date.now()
           }
         : s
     ));
@@ -142,12 +170,21 @@ const App: React.FC = () => {
         s.id === currentSessionId ? { ...s, messages: [...s.messages, assistantMessage] } : s
       ));
 
-      await chatGRC.sendMessageStream(
+      // Determine the system instructions (Check if it's a contact persona)
+      let instructions = customInstructions;
+      if (currentSession.contactId) {
+        const contact = MOCK_CONTACTS.find(c => c.id === currentSession.contactId);
+        if (contact) {
+          instructions = `${contact.persona}\n\n${customInstructions}`;
+        }
+      }
+
+      const fullResponse = await chatGRC.sendMessageStream(
         content,
         selectedModel,
         currentSession?.messages || [],
         attachments,
-        customInstructions,
+        instructions,
         (text, sources) => {
           setSessions(prev => prev.map(s => 
             s.id === currentSessionId 
@@ -161,11 +198,38 @@ const App: React.FC = () => {
           ));
         }
       );
+
+      // Post-response actions: AI Title Generation & Suggestions (Only for regular chats)
+      if (isFirstMessage && !currentSession.contactId) {
+        chatGRC.generateTitle(content).then(newTitle => {
+          setSessions(prev => prev.map(s => s.id === currentSessionId ? { ...s, title: newTitle } : s));
+        });
+      }
+
+      const newSuggestions = await chatGRC.generateSuggestions([
+        ...currentSession.messages,
+        userMessage,
+        { role: 'assistant', content: fullResponse }
+      ]);
+      setSuggestions(newSuggestions);
+      
     } catch (error) {
       console.error("Chat Error:", error);
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const fetchCurrentNews = () => {
+    const today = new Date().toLocaleDateString('ur-PK', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+    const prompt = NEWS_PROMPT.replace('[CURRENT_DATE]', today);
+    handleSendMessage(prompt);
+  };
+
+  const fetchAIUpdates = () => {
+    const today = new Date().toLocaleDateString('ur-PK', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+    const prompt = AI_UPDATES_PROMPT.replace('[CURRENT_DATE]', today);
+    handleSendMessage(prompt);
   };
 
   const deleteSession = (id: string) => {
@@ -197,6 +261,7 @@ const App: React.FC = () => {
         activeId={currentSessionId}
         onSelect={setCurrentSessionId}
         onNewChat={createNewChat}
+        onSelectContact={startChatWithContact}
         onDelete={deleteSession}
         isOpen={isSidebarOpen}
         setIsOpen={setIsSidebarOpen}
@@ -212,8 +277,8 @@ const App: React.FC = () => {
       <ChatArea 
         session={currentSession}
         onSendMessage={handleSendMessage}
-        onFetchNews={() => handleSendMessage(NEWS_PROMPT)}
-        onFetchAIUpdates={() => handleSendMessage(AI_UPDATES_PROMPT)}
+        onFetchNews={fetchCurrentNews}
+        onFetchAIUpdates={fetchAIUpdates}
         isImageMode={false}
         setIsImageMode={() => {}}
         onStartVoice={() => setShowLiveMode(true)}
@@ -223,6 +288,7 @@ const App: React.FC = () => {
         settings={settings}
         onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
         onRefreshContext={() => { chatGRC.resetChat(); createNewChat(); }}
+        suggestions={suggestions}
       />
       {showLiveMode && <LiveMode settings={settings} onClose={() => setShowLiveMode(false)} />}
       {showLoginModal && (

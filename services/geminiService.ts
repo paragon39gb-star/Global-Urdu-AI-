@@ -1,5 +1,5 @@
 
-import { GoogleGenAI, Chat, Modality, LiveServerMessage, Part } from "@google/genai";
+import { GoogleGenAI, Chat, Modality, LiveServerMessage, Part, Type } from "@google/genai";
 import { SYSTEM_PROMPT } from "../constants";
 
 class ChatGRCService {
@@ -10,9 +10,34 @@ class ChatGRCService {
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     
     const now = new Date();
-    const dateStr = now.toLocaleDateString('ur-PK', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-    const timeStr = now.toLocaleTimeString('ur-PK');
-    const updatedSystemPrompt = `${SYSTEM_PROMPT}\n\nموجودہ وقت اور تاریخ: ${dateStr}، وقت: ${timeStr}`;
+    const gregOptions: Intl.DateTimeFormatOptions = { 
+      weekday: 'long', 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric' 
+    };
+    const dateStr = new Intl.DateTimeFormat('ur-PK', gregOptions).format(now);
+    
+    let hijriStr = "";
+    try {
+      hijriStr = new Intl.DateTimeFormat('ur-PK-u-ca-islamic-uma-nu-latn', { 
+        day: 'numeric', 
+        month: 'long', 
+        year: 'numeric' 
+      }).format(now);
+    } catch (e) {
+      hijriStr = "ہجری تاریخ دستیاب نہیں";
+    }
+
+    const timeStr = new Intl.DateTimeFormat('ur-PK', { 
+      hour: '2-digit', 
+      minute: '2-digit', 
+      second: '2-digit',
+      hour12: true 
+    }).format(now);
+
+    const dateContext = `موجودہ عیسوی تاریخ: ${dateStr}\nموجودہ ہجری تاریخ: ${hijriStr}\nوقت: ${timeStr}`;
+    const updatedSystemPrompt = `${SYSTEM_PROMPT}\n\n[CONTEXT_UPDATE]\n${dateContext}\n[/CONTEXT_UPDATE]`;
 
     const geminiHistory = history.map(msg => ({
       role: msg.role === 'user' ? 'user' : 'model',
@@ -33,11 +58,26 @@ class ChatGRCService {
       history: geminiHistory,
       config: {
         systemInstruction: (customInstructions ? `${updatedSystemPrompt}\n\nUSER CUSTOM INSTRUCTIONS:\n${customInstructions}` : updatedSystemPrompt),
-        temperature: 0.1, // Lower temperature for maximum precision and faster sampling
+        temperature: 0.1,
         topP: 0.95,
         tools: [{ googleSearch: {} }]
       }
     });
+  }
+
+  async generateTitle(firstMessage: string) {
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    try {
+      const response = await ai.models.generateContent({
+        model: 'gemini-3-flash-preview',
+        contents: `Analyze this first message of a research chat and generate a very short, comprehensive, and scholarly title in Urdu (max 4-5 words). 
+        Do not use punctuation.
+        Message: ${firstMessage}`,
+      });
+      return response.text.trim().replace(/[۔،!؟]/g, '');
+    } catch (e) {
+      return firstMessage.slice(0, 30);
+    }
   }
 
   async sendMessageStream(
@@ -98,6 +138,31 @@ class ChatGRCService {
     }
   }
 
+  async generateSuggestions(history: any[]) {
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    try {
+      const lastMessage = history[history.length - 1]?.content || "";
+      const response = await ai.models.generateContent({
+        model: 'gemini-3-flash-preview',
+        contents: `Based on the following last message from a conversation about research/Islam/history, suggest 3 extremely short and relevant follow-up questions in Urdu that a user might want to ask. 
+        Return ONLY a JSON array of strings. 
+        Example: ["مزید وضاحت کریں", "اس کا حوالہ کیا ہے؟", "تاریخی پس منظر کیا ہے؟"]
+        Last Message: ${lastMessage}`,
+        config: {
+          responseMimeType: "application/json",
+          responseSchema: {
+            type: Type.ARRAY,
+            items: { type: Type.STRING }
+          }
+        }
+      });
+      return JSON.parse(response.text || "[]");
+    } catch (error) {
+      console.error("Suggestions Generation Error:", error);
+      return [];
+    }
+  }
+
   async textToSpeech(text: string, voiceName: string) {
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     try {
@@ -137,7 +202,7 @@ class ChatGRCService {
         onclose: () => callbacks.onClose()
       },
       config: {
-        responseModalities: [Modality.AUDIO],
+        responseModalalities: [Modality.AUDIO],
         systemInstruction: SYSTEM_PROMPT + "\n\nصارف سے شستہ اردو میں بات کریں اور مختصر و جامع جواب دیں۔",
         speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: voiceName } } },
         inputAudioTranscription: {},

@@ -12,6 +12,15 @@ export interface User {
   email: string;
 }
 
+export interface Contact {
+  id: string;
+  name: string;
+  number: string;
+  avatar: string;
+  persona: string;
+  description: string;
+}
+
 export interface Message {
   id: string;
   role: 'user' | 'assistant';
@@ -28,6 +37,7 @@ export interface ChatSession {
   createdAt: number;
   updatedAt: number;
   model: string;
+  contactId?: string; // If this is a DM with a contact
 }
 
 export interface GroundingSource {
