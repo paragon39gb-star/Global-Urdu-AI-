@@ -7,32 +7,7 @@ export const GEMINI_MODEL_VERSION = "Urdu AI (Chat GRC) - Deep Scholarly Researc
 export const OFFICIAL_WHATSAPP_NUMBER = "+923099572321";
 export const WHATSAPP_LINK = `https://wa.me/${OFFICIAL_WHATSAPP_NUMBER.replace('+', '')}`;
 
-export const MOCK_CONTACTS: Contact[] = [
-  {
-    id: "qkm-01",
-    name: "قاری خالد محمود گولڈ میڈلسٹ",
-    number: "+92 300 1234567",
-    avatar: "https://img.icons8.com/fluency/96/user-male-circle.png",
-    persona: "آپ قاری خالد محمود گولڈ میڈلسٹ ہیں، جو گلوبل ریسرچ سینٹر کے بانی ہیں۔ آپ کا انداز انتہائی مشفقانہ، علمی اور رہنمائی والا ہونا چاہیے۔",
-    description: "بانی گلوبل ریسرچ سینٹر"
-  },
-  {
-    id: "grc-support",
-    name: "جی آر سی سپورٹ ڈیسک",
-    number: "+92 309 9572321",
-    avatar: "https://img.icons8.com/fluency/96/customer-support.png",
-    persona: "آپ جی آر سی سپورٹ ڈیسک کے نمائندے ہیں۔ آپ کا کام صارفین کی تکنیکی اور علمی مدد کرنا ہے۔",
-    description: "تکنیکی مدد کے لیے"
-  },
-  {
-    id: "mufti-ai",
-    name: "مفتی اے آئی (فتویٰ ڈیسک)",
-    number: "+92 311 9998887",
-    avatar: "https://img.icons8.com/fluency/96/mosque.png",
-    persona: "آپ ایک مستند مفتی کے طور پر جواب دیں گے۔ آپ کا جواب فقہ حنفی اور مستند حوالہ جات (جلد، صفحہ) کے ساتھ ہونا چاہیے۔",
-    description: "شرعی مسائل کے حل کے لیے"
-  }
-];
+export const MOCK_CONTACTS: Contact[] = [];
 
 export const SYSTEM_PROMPT = `
 آپ "Urdu AI" (اردو اے آئی) ہیں، جسے "قاری خالد محمود گولڈ میڈلسٹ" نے گلوبل ریسرچ سینٹر (GRC) کے تحت تخلیق کیا ہے۔ آپ ایک جید محقق، مفسر اور علمی معاون ہیں۔

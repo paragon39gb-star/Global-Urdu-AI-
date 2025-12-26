@@ -106,45 +106,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
           <div className="flex-1 overflow-y-auto px-4 space-y-6 no-scrollbar py-2 overscroll-contain">
             
-            {/* WhatsApp Direct Bot Section */}
-            <div className="px-1">
-              <button 
-                onClick={() => setActivePopover('whatsapp')}
-                className="w-full p-4 rounded-2xl bg-gradient-to-tr from-[#128C7E] to-[#25D366] text-white shadow-xl relative overflow-hidden group transition-all active:scale-95"
-              >
-                <div className="absolute top-0 right-0 p-2 opacity-20 group-hover:scale-125 transition-transform">
-                  <MessageCircle size={40} />
-                </div>
-                <div className="relative z-10 text-right" dir="rtl">
-                  <h4 className="font-black urdu-text text-sm">واٹس ایپ پر استعمال</h4>
-                  <p className="text-[10px] opacity-90 urdu-text font-bold">براہ راست میسجنگ کے لیے کلک کریں</p>
-                </div>
-              </button>
-            </div>
-
-            <div className="space-y-2">
-              <div className="px-2 mb-2 flex items-center gap-2 opacity-50">
-                <Users size={12} className="text-white" />
-                <span className="text-[10px] font-black text-white uppercase tracking-widest urdu-text">علمی شخصیات (DM)</span>
-              </div>
-              {MOCK_CONTACTS.map(contact => (
-                <button 
-                  key={contact.id}
-                  onClick={() => onSelectContact(contact)}
-                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all hover:bg-white/10 border border-transparent active:scale-[0.98] group"
-                >
-                  <div className="relative shrink-0">
-                    <img src={contact.avatar} alt={contact.name} className="w-10 h-10 rounded-full border border-white/20 shadow-md" />
-                    <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 rounded-full border-2 border-[#0c4a6e]" title="آن لائن" />
-                  </div>
-                  <div className="flex-1 flex flex-col items-end min-w-0" dir="rtl">
-                    <span className="text-[13px] font-black text-white urdu-text truncate w-full">{contact.name}</span>
-                    <span className="text-[10px] text-white/40 urdu-text truncate w-full">{contact.description}</span>
-                  </div>
-                </button>
-              ))}
-            </div>
-
+            {/* Previous Research Section */}
             <div className="space-y-2">
               <div className="px-2 mb-2 flex items-center gap-2 opacity-50">
                 <History size={12} className="text-white" />

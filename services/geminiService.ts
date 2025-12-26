@@ -202,7 +202,7 @@ class ChatGRCService {
         onclose: () => callbacks.onClose()
       },
       config: {
-        responseModalalities: [Modality.AUDIO],
+        responseModalities: [Modality.AUDIO],
         systemInstruction: SYSTEM_PROMPT + "\n\nصارف سے شستہ اردو میں بات کریں اور مختصر و جامع جواب دیں۔",
         speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: voiceName } } },
         inputAudioTranscription: {},
