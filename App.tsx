@@ -7,6 +7,7 @@ import { LoginModal } from './components/LoginModal';
 import { ChatSession, Message, Attachment, UserSettings, User, Contact } from './types';
 import { chatGRC } from './services/geminiService';
 import { NEWS_PROMPT, AI_UPDATES_PROMPT, MOCK_CONTACTS } from './constants';
+import { Rocket, ShieldAlert, Loader2 } from 'lucide-react';
 
 const App: React.FC = () => {
   const [sessions, setSessions] = useState<ChatSession[]>([]);
@@ -17,8 +18,12 @@ const App: React.FC = () => {
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [isKeyReady, setIsKeyReady] = useState(false);
+  const [keyError, setKeyError] = useState(false);
+  const [isCheckingKey, setIsCheckingKey] = useState(true);
   
-  const [selectedModel, setSelectedModel] = useState('gemini-3-flash-preview');
+  // Rule: Use gemini-3-pro-preview for complex research tasks.
+  const [selectedModel, setSelectedModel] = useState('gemini-3-pro-preview');
   const [customInstructions, setCustomInstructions] = useState('');
   const [settings, setSettings] = useState<UserSettings>({
     fontSize: 18,
@@ -29,6 +34,46 @@ const App: React.FC = () => {
     voicePitch: 1.0,
     voiceSpeed: 1.0
   });
+
+  // Check for API Key selection on startup
+  useEffect(() => {
+    const checkKey = async () => {
+      setIsCheckingKey(true);
+      try {
+        // Rule: If process.env.API_KEY is defined and not empty, use it.
+        const envKey = process.env.API_KEY;
+        const hasSelected = window.aistudio && await window.aistudio.hasSelectedApiKey();
+        
+        if (envKey && envKey.length > 5) {
+          setIsKeyReady(true);
+          setKeyError(false);
+        } else if (hasSelected) {
+          setIsKeyReady(true);
+          setKeyError(false);
+        } else {
+          setKeyError(true);
+        }
+      } catch (e) {
+        // Fallback for unexpected issues
+        if (process.env.API_KEY) setIsKeyReady(true);
+        else setKeyError(true);
+      } finally {
+        setIsCheckingKey(false);
+      }
+    };
+    checkKey();
+  }, []);
+
+  const handleOpenKeyDialog = async () => {
+    if (window.aistudio) {
+      await window.aistudio.openSelectKey();
+      setIsKeyReady(true);
+      setKeyError(false);
+    } else {
+      // In normal browser, if key is missing, prompt to check env
+      alert("براہ کرم ورسل میں API_KEY اینوائرنمنٹ ویری ایبل چیک کریں۔");
+    }
+  };
 
   useEffect(() => {
     const handler = (e: any) => {
@@ -66,7 +111,6 @@ const App: React.FC = () => {
   }, [selectedModel]);
 
   const startChatWithContact = (contact: Contact) => {
-    // Check if session with this contact already exists
     const existing = sessions.find(s => s.contactId === contact.id);
     if (existing) {
       setCurrentSessionId(existing.id);
@@ -157,8 +201,9 @@ const App: React.FC = () => {
     ));
 
     setIsLoading(true);
+    // Fix: Move assistantMessageId declaration here to make it accessible in the catch block.
+    const assistantMessageId = (Date.now() + 1).toString();
     try {
-      const assistantMessageId = (Date.now() + 1).toString();
       const assistantMessage: Message = {
         id: assistantMessageId,
         role: 'assistant',
@@ -170,7 +215,6 @@ const App: React.FC = () => {
         s.id === currentSessionId ? { ...s, messages: [...s.messages, assistantMessage] } : s
       ));
 
-      // Determine the system instructions (Check if it's a contact persona)
       let instructions = customInstructions;
       if (currentSession.contactId) {
         const contact = MOCK_CONTACTS.find(c => c.id === currentSession.contactId);
@@ -199,7 +243,6 @@ const App: React.FC = () => {
         }
       );
 
-      // Post-response actions: AI Title Generation & Suggestions (Only for regular chats)
       if (isFirstMessage && !currentSession.contactId) {
         chatGRC.generateTitle(content).then(newTitle => {
           setSessions(prev => prev.map(s => s.id === currentSessionId ? { ...s, title: newTitle } : s));
@@ -213,8 +256,30 @@ const App: React.FC = () => {
       ]);
       setSuggestions(newSuggestions);
       
-    } catch (error) {
+    } catch (error: any) {
       console.error("Chat Error:", error);
+      let errorMessage = "معذرت! جواب موصول کرنے میں دشواری پیش آئی۔";
+      
+      if (error.message?.includes("API key not valid")) {
+        errorMessage = "API Key درست نہیں ہے۔ براہ کرم چابی دوبارہ منتخب کریں۔";
+      } else if (error.message?.includes("Requested entity was not found")) {
+        errorMessage = "ماڈل دستیاب نہیں یا کی ختم ہو چکی ہے۔";
+        setKeyError(true);
+        setIsKeyReady(false);
+      } else if (error.message?.includes("Safety")) {
+        errorMessage = "یہ سوال پالیسی کے خلاف ہو سکتا ہے۔ براہ کرم لفظ تبدیل کریں۔";
+      }
+      
+      setSessions(prev => prev.map(s => 
+        s.id === currentSessionId 
+          ? { 
+              ...s, 
+              messages: s.messages.map(m => 
+                m.id === assistantMessageId ? { ...m, content: errorMessage } : m
+              ) 
+            } 
+          : s
+      ));
     } finally {
       setIsLoading(false);
     }
@@ -253,6 +318,37 @@ const App: React.FC = () => {
       default: return 'urdu-font-sans';
     }
   };
+
+  if (isCheckingKey) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center bg-slate-950">
+        <Loader2 className="w-10 h-10 text-sky-500 animate-spin" />
+      </div>
+    );
+  }
+
+  if (!isKeyReady && keyError) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center bg-slate-900 p-6 text-center">
+        <div className="max-w-md space-y-6">
+          <div className="w-20 h-20 bg-sky-500/20 rounded-full flex items-center justify-center mx-auto mb-4 border border-sky-500/30">
+            <ShieldAlert size={40} className="text-sky-400" />
+          </div>
+          <h1 className="text-3xl font-black text-white urdu-text">سروس فعال کریں</h1>
+          <p className="text-sky-100/70 urdu-text leading-relaxed">
+            اردو اے آئی کو استعمال کرنے کے لیے اے پی آئی کی (API Key) کا انتخاب ضروری ہے۔ اگر آپ ورسل پر ہیں تو یقینی بنائیں کہ API_KEY موجود ہے۔
+          </p>
+          <button 
+            onClick={handleOpenKeyDialog}
+            className="w-full bg-sky-500 hover:bg-sky-400 text-white font-black py-4 rounded-2xl flex items-center justify-center gap-2 shadow-xl transition-all active:scale-95"
+          >
+            <Rocket size={20} />
+            <span className="urdu-text text-xl">لانچ کریں (Launch)</span>
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={`flex h-screen w-full overflow-hidden ${getFontClass()}`}>

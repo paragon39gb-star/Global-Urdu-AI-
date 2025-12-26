@@ -156,10 +156,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
                <button onClick={() => setFont('sans')} className={`flex-1 py-2 px-1 rounded-lg text-[10px] urdu-text font-black border transition-all ${settings.fontFamily === 'sans' ? 'bg-white/20 border-white text-white shadow-lg' : 'border-white/5 text-white/40 hover:bg-white/5'}`}>سادہ</button>
             </div>
 
-            <div className="w-full">
-              <button onClick={() => setActivePopover('usage')} className="w-full flex items-center justify-center gap-2 p-3 rounded-xl bg-white/5 hover:bg-white/10 text-white/60 border border-white/5 transition-all active:scale-95">
+            <div className="grid grid-cols-2 gap-2">
+              <button onClick={() => setActivePopover('usage')} className="flex items-center justify-center gap-2 p-3 rounded-xl bg-white/5 hover:bg-white/10 text-white/60 border border-white/5 transition-all active:scale-95">
                 <HelpCircle size={14} />
                 <span className="text-[10px] urdu-text font-black">رہنمائی</span>
+              </button>
+              <button onClick={() => setActivePopover('about')} className="flex items-center justify-center gap-2 p-3 rounded-xl bg-white/5 hover:bg-white/10 text-white/60 border border-white/5 transition-all active:scale-95">
+                <Info size={14} />
+                <span className="text-[10px] urdu-text font-black">تعارف</span>
               </button>
             </div>
 

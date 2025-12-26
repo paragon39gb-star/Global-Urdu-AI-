@@ -3,36 +3,31 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
 
-// Safe Service Worker Registration for PWA
+// Safe Service Worker Registration
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    // Check for localhost or HTTPS (Vercel provides HTTPS by default)
     const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
     const isSecure = window.location.protocol === 'https:';
 
     if (isSecure || isLocalhost) {
-      // Register using a simple relative string path to avoid URL constructor issues
-      navigator.serviceWorker.register('./sw.js', { scope: './' })
-        .then(reg => {
-          console.log('Urdu AI: PWA Ready (Service Worker Registered)');
-          // Check for updates automatically
-          reg.update();
+      // Using relative path to avoid path-based 404 errors in various hosting environments
+      navigator.serviceWorker.register('./sw.js')
+        .then(() => {
+          // Service Worker registered successfully
         })
-        .catch(err => {
-          console.warn('Urdu AI: PWA registration skipped (Offline mode may be limited).');
+        .catch(() => {
+          // Silently fail to avoid cluttered console logs
         });
     }
   });
 }
 
 const rootElement = document.getElementById('root');
-if (!rootElement) {
-  throw new Error("Critical Error: Root element not found.");
+if (rootElement) {
+  const root = ReactDOM.createRoot(rootElement);
+  root.render(
+    <React.StrictMode>
+      <App />
+    </React.StrictMode>
+  );
 }
-
-const root = ReactDOM.createRoot(rootElement);
-root.render(
-  <React.StrictMode>
-    <App />
-  </React.StrictMode>
-);

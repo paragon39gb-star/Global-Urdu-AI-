@@ -1,6 +1,6 @@
 
 import React, { useEffect, useRef, useState } from 'react';
-import { Mic, X, Volume2, AlertCircle, ShieldCheck, MessageSquare, Radio } from 'lucide-react';
+import { Mic, X, Volume2, AlertCircle, ShieldCheck, MessageSquare, Radio, Loader2 } from 'lucide-react';
 import { chatGRC } from '../services/geminiService';
 import { UserSettings } from '../types';
 
@@ -20,6 +20,7 @@ export const LiveMode: React.FC<LiveModeProps> = ({ onClose, settings }) => {
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [isUserSpeaking, setIsUserSpeaking] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isConnecting, setIsConnecting] = useState(true);
   
   const audioContextRef = useRef<AudioContext | null>(null);
   const outputNodeRef = useRef<GainNode | null>(null);
@@ -61,7 +62,7 @@ export const LiveMode: React.FC<LiveModeProps> = ({ onClose, settings }) => {
   };
 
   const decodeAudioData = async (data: Uint8Array, ctx: AudioContext) => {
-    const dataInt16 = new Int16Array(data.buffer);
+    const dataInt16 = new Int16Array(data.buffer, data.byteOffset, data.byteLength / 2);
     const buffer = ctx.createBuffer(1, dataInt16.length, 24000);
     const channelData = buffer.getChannelData(0);
     for (let i = 0; i < dataInt16.length; i++) channelData[i] = dataInt16[i] / 32768.0;
@@ -92,12 +93,6 @@ export const LiveMode: React.FC<LiveModeProps> = ({ onClose, settings }) => {
       const centerX = canvas.width / 2;
       const centerY = canvas.height / 2;
       const radius = 50;
-
-      ctx.beginPath();
-      ctx.arc(centerX, centerY, radius + 5, 0, 2 * Math.PI);
-      ctx.strokeStyle = 'rgba(14, 165, 233, 0.1)';
-      ctx.lineWidth = 1;
-      ctx.stroke();
 
       for (let i = 0; i < bufferLength; i++) {
         const barHeight = (dataArray[i] / 255) * 50;
@@ -139,6 +134,10 @@ export const LiveMode: React.FC<LiveModeProps> = ({ onClose, settings }) => {
       const sessionPromise = chatGRC.connectLive({
         voiceName: settings.voiceName,
         callbacks: {
+          onOpen: () => {
+            setIsConnecting(false);
+            setIsActive(true);
+          },
           onAudio: async (base64) => {
             if (!audioContextRef.current || audioContextRef.current.state === 'closed') return;
             const buffer = await decodeAudioData(decode(base64), audioContextRef.current);
@@ -191,7 +190,7 @@ export const LiveMode: React.FC<LiveModeProps> = ({ onClose, settings }) => {
       sessionPromiseRef.current = sessionPromise;
 
       const source = inputCtx.createMediaStreamSource(stream);
-      const scriptProcessor = inputCtx.createScriptProcessor(1024, 1, 1);
+      const scriptProcessor = inputCtx.createScriptProcessor(2048, 1, 1);
       scriptProcessor.onaudioprocess = (e: any) => {
         const inputData = e.inputBuffer.getChannelData(0);
         const int16 = new Int16Array(inputData.length);
@@ -200,6 +199,8 @@ export const LiveMode: React.FC<LiveModeProps> = ({ onClose, settings }) => {
           int16[i] = s < 0 ? s * 32768 : s * 32767;
         }
         const base64Data = encode(new Uint8Array(int16.buffer));
+        
+        // Critical: Only send if session is resolved
         sessionPromiseRef.current?.then(session => {
           session.sendRealtimeInput({ 
             media: { data: base64Data, mimeType: 'audio/pcm;rate=16000' } 
@@ -209,7 +210,6 @@ export const LiveMode: React.FC<LiveModeProps> = ({ onClose, settings }) => {
 
       source.connect(scriptProcessor);
       scriptProcessor.connect(inputCtx.destination);
-      setIsActive(true);
     } catch (err: any) {
       setError("مائیکروفون تک رسائی ممکن نہیں۔");
       setTimeout(onClose, 3000);
@@ -226,7 +226,6 @@ export const LiveMode: React.FC<LiveModeProps> = ({ onClose, settings }) => {
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/95 backdrop-blur-3xl p-4">
       <div className="w-full max-w-xl bg-white rounded-[2.5rem] border border-slate-200 flex flex-col relative overflow-hidden shadow-2xl animate-in zoom-in-95 duration-300 h-[80vh] md:h-[70vh]">
         
-        {/* Header */}
         <div className="p-6 flex items-center justify-between border-b border-slate-100 bg-slate-50/50 shrink-0">
           <div className="flex items-center gap-3">
              <div className="w-10 h-10 rounded-xl bg-[#0369a1] flex items-center justify-center shadow-lg shadow-[#0369a1]/20">
@@ -235,7 +234,7 @@ export const LiveMode: React.FC<LiveModeProps> = ({ onClose, settings }) => {
              <div>
                 <h2 className="text-lg font-black urdu-text text-[#0c4a6e]">لائیو گفتگو</h2>
                 <div className="flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                  <span className={`w-1.5 h-1.5 rounded-full ${isActive ? 'bg-emerald-500 animate-pulse' : 'bg-slate-300'}`} />
                   <span className="text-[10px] text-[#0369a1] font-black tracking-widest uppercase">Live Research</span>
                 </div>
              </div>
@@ -245,19 +244,25 @@ export const LiveMode: React.FC<LiveModeProps> = ({ onClose, settings }) => {
           </button>
         </div>
 
-        {/* Interaction Area */}
         <div className="p-10 flex flex-col items-center justify-center gap-8 shrink-0 bg-gradient-to-b from-slate-50 to-transparent">
-          <div className="relative w-40 h-40 flex items-center justify-center">
-            <canvas ref={canvasRef} width={250} height={250} className="absolute inset-0 w-full h-full" />
-            <div className={`w-24 h-24 rounded-full bg-gradient-to-tr from-[#0c4a6e] to-[#0369a1] flex items-center justify-center z-10 border-4 border-white shadow-2xl transition-transform duration-500 ${isUserSpeaking ? 'scale-110' : 'scale-100'}`}>
-              <Mic size={32} className="text-white" />
+          {isConnecting && !error ? (
+            <div className="flex flex-col items-center gap-4">
+              <Loader2 className="w-12 h-12 text-[#0369a1] animate-spin" />
+              <p className="urdu-text font-black text-[#0c4a6e]">رابطہ قائم کیا جا رہا ہے...</p>
             </div>
-          </div>
+          ) : (
+            <div className="relative w-40 h-40 flex items-center justify-center">
+              <canvas ref={canvasRef} width={250} height={250} className="absolute inset-0 w-full h-full" />
+              <div className={`w-24 h-24 rounded-full bg-gradient-to-tr from-[#0c4a6e] to-[#0369a1] flex items-center justify-center z-10 border-4 border-white shadow-2xl transition-transform duration-500 ${isUserSpeaking ? 'scale-110' : 'scale-100'}`}>
+                <Mic size={32} className="text-white" />
+              </div>
+            </div>
+          )}
 
           <div className="w-full min-h-[60px] flex items-center justify-center text-center">
             {error ? (
               <p className="text-red-500 urdu-text font-bold text-lg">{error}</p>
-            ) : (
+            ) : !isConnecting && (
               <p className="urdu-text text-[#0c4a6e] font-black text-xl md:text-2xl drop-shadow-sm leading-relaxed" dir="rtl">
                 {transcription || (isUserSpeaking ? "سن رہا ہوں..." : "کچھ پوچھیں، میں حاضر ہوں...")}
               </p>
@@ -265,9 +270,8 @@ export const LiveMode: React.FC<LiveModeProps> = ({ onClose, settings }) => {
           </div>
         </div>
 
-        {/* History Area */}
         <div className="flex-1 overflow-y-auto px-6 py-6 space-y-4 no-scrollbar bg-white shadow-inner">
-          {history.length === 0 && !transcription && (
+          {history.length === 0 && !transcription && !isConnecting && (
             <div className="h-full flex flex-col items-center justify-center opacity-10 space-y-3">
               <MessageSquare size={48} className="text-[#0369a1]" />
               <p className="urdu-text font-bold">کوئی گفتگو نہیں ہوئی</p>
@@ -290,7 +294,6 @@ export const LiveMode: React.FC<LiveModeProps> = ({ onClose, settings }) => {
           <div ref={historyEndRef} className="h-2" />
         </div>
 
-        {/* Footer */}
         <div className="p-4 border-t border-slate-100 bg-slate-50 flex flex-col items-center gap-1 shrink-0">
            <p className="text-[12px] text-[#0c4a6e] font-black uppercase tracking-widest text-center">
              Global Research Centre
