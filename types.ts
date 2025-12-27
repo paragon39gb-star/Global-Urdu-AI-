@@ -55,3 +55,17 @@ export interface UserSettings {
   voicePitch: number;
   voiceSpeed: number;
 }
+
+// Define the AIStudio interface to match environmental type requirements
+export interface AIStudio {
+  hasSelectedApiKey: () => Promise<boolean>;
+  openSelectKey: () => Promise<void>;
+}
+
+declare global {
+  interface Window {
+    // Fix: Subsequent property declarations must have the same type.
+    // Using the named AIStudio interface as required by the environment.
+    aistudio: AIStudio;
+  }
+}

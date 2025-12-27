@@ -19,6 +19,7 @@ interface SidebarProps {
   onLogout: () => void;
   onShowLogin: () => void;
   onSendFeedback: () => void;
+  onInstall?: () => void;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -33,7 +34,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
   setSettings,
   onLogout,
   onShowLogin,
-  onSendFeedback
+  onSendFeedback,
+  onInstall
 }) => {
   const [activePopover, setActivePopover] = useState<'about' | 'usage' | 'whatsapp' | null>(null);
 
@@ -44,8 +46,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const setVoice = (voice: any) => setSettings({...settings, voiceName: voice});
 
   const handleOpenKeyDialog = async () => {
-    if ((window as any).aistudio?.openSelectKey) {
-      await (window as any).aistudio.openSelectKey();
+    if (window.aistudio?.openSelectKey) {
+      await window.aistudio.openSelectKey();
     }
   };
 
@@ -214,6 +216,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <MessageCircle size={16} className="text-[#25D366]" />
               <span className="urdu-text flex-1 text-right font-black" dir="rtl">رائے دیں (WhatsApp)</span>
             </button>
+            
+            {onInstall && (
+              <button onClick={onInstall} className="w-full flex items-center justify-center gap-2 p-3 rounded-xl bg-white/10 hover:bg-white/20 text-white font-bold border border-white/10 transition-all active:scale-95 text-xs">
+                <Sparkles size={14} />
+                <span className="urdu-text">ایپ انسٹال کریں</span>
+              </button>
+            )}
           </div>
 
           {activePopover && (
