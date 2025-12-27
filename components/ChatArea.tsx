@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { Sparkles, ArrowUp, Mic, Paperclip, Menu, Newspaper, Loader2, RefreshCcw, Calendar, Radio, AlertCircle, Cpu, Share2, MessageCircle, Image as ImageIcon, Wand2 } from 'lucide-react';
 import { MessageBubble } from './MessageBubble';
@@ -84,22 +83,11 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
   const handleImageGeneration = async (prompt: string) => {
     setIsGeneratingImage(true);
     setInput('');
-    setIsImageMode(false); // Reset mode after starting
+    setIsImageMode(false);
     
-    // Add temporary message to history to show intent
-    const userMsg: Message = {
-      id: Date.now().toString(),
-      role: 'user',
-      content: `تصویر بنائیں: ${prompt}`,
-      timestamp: Date.now()
-    };
-    
-    // We modify session via parent props usually, but here we just wait for result
-    // To keep it simple, we simulate a system message being added after generation
     try {
       const imageData = await chatGRC.generateImage(prompt);
       if (imageData) {
-        // Create an assistant message with the image as an attachment
         const imageAttachment: Attachment = {
           data: imageData,
           mimeType: 'image/png',
@@ -144,6 +132,26 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
     window.open(`https://wa.me/?text=${text}`, '_blank');
   };
 
+  // Fixed handleFileChange by explicitly typing the 'file' parameter to resolve 'unknown' type errors.
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files) return;
+    
+    Array.from(files).forEach((file: File) => {
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        const data = ev.target?.result as string;
+        setAttachments(prev => [...prev, {
+          data,
+          mimeType: file.type,
+          name: file.name,
+          previewUrl: file.type.startsWith('image/') ? data : undefined
+        }]);
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+
   return (
     <div className={`flex-1 flex flex-col h-full overflow-hidden ${settings.highContrast ? 'bg-slate-950' : 'bg-[#f8fafc]'}`}>
       <header className={`h-16 flex items-center justify-between px-2 md:px-6 shrink-0 z-30 shadow-lg border-b border-white/10 transition-colors ${contact ? 'bg-[#075e54] text-white' : 'bg-gradient-to-r from-[#0369a1] via-[#075985] to-[#0c4a6e]'}`}>
@@ -182,23 +190,15 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
       <div className="flex-1 overflow-y-auto no-scrollbar scroll-smooth relative">
         <div className="w-full max-w-chat mx-auto px-4 flex flex-col min-h-full relative z-10">
           {!session || session.messages.length === 0 ? (
-            <div className="flex-1 flex flex-col items-center justify-center py-8 animate-bubble space-y-6">
-              <div className="text-center space-y-4 w-full max-w-lg">
-                <div className="relative inline-flex items-center justify-center w-16 h-16 bg-gradient-to-tr from-[#0ea5e9] to-[#0c4a6e] rounded-[1.2rem] border-2 border-white shadow-2xl rotate-2">
-                  <span className="text-white text-3xl font-bold animate-pulse">U</span>
+            <div className="flex-1 flex flex-col items-center justify-center py-8 animate-bubble">
+              <div className="text-center space-y-4 w-full">
+                <div className="relative inline-flex items-center justify-center w-12 h-12 bg-gradient-to-tr from-[#0ea5e9] to-[#0c4a6e] rounded-xl border border-white shadow-xl mb-4">
+                  <span className="text-white text-xl font-bold">U</span>
                 </div>
-                <div className="space-y-4">
-                  <h2 className="text-3xl md:text-4xl font-black urdu-text text-slate-900 tracking-tight">Urdu AI (اردو اے آئی)</h2>
-                  <div className="flex justify-center">
-                    <div className="px-5 py-2.5 rounded-2xl bg-white/90 border border-sky-100 shadow-xl flex items-center gap-2.5">
-                      <Calendar className="w-4 h-4 text-sky-600" />
-                      <span className="urdu-text text-sm font-black text-sky-900">{combinedDate}</span>
-                    </div>
-                  </div>
-                  <div className="max-w-md mx-auto p-6 md:p-8 rounded-3xl border-x-4 border-sky-500 shadow-2xl bg-white/95 backdrop-blur-sm">
-                    <p className="urdu-text text-base md:text-lg font-bold text-sky-900 text-center leading-relaxed" dir="rtl">
-                      اردو اے آئی ایک جدید تحقیقی انجن ہے۔ اپنا تحقیقی سوال نیچے لکھیں، تصویر بنوائیں یا لائیو گفتگو کریں۔
-                    </p>
+                <div className="flex justify-center mb-2">
+                  <div className="px-4 py-1.5 rounded-full bg-white/80 border border-sky-100 shadow-sm flex items-center gap-2">
+                    <Calendar className="w-3.5 h-3.5 text-sky-600" />
+                    <span className="urdu-text text-[11px] font-black text-sky-900">{combinedDate}</span>
                   </div>
                 </div>
               </div>
@@ -247,6 +247,20 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
 
       <footer className="w-full shrink-0 pt-2 pb-6 px-4 bg-white/60 backdrop-blur-md border-t border-slate-100">
         <div className="max-w-chat mx-auto w-full">
+          {attachments.length > 0 && (
+            <div className="flex gap-2 mb-2 overflow-x-auto py-2 no-scrollbar">
+              {attachments.map((att, i) => (
+                <div key={i} className="relative group shrink-0">
+                  <div className="w-14 h-14 rounded-lg border border-slate-200 overflow-hidden bg-slate-50">
+                    {att.previewUrl ? <img src={att.previewUrl} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-[10px] text-slate-400 p-1 break-all">{att.name}</div>}
+                  </div>
+                  <button onClick={() => setAttachments(prev => prev.filter((_, idx) => idx !== i))} className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-0.5 shadow-md hover:bg-red-600 transition-colors">
+                    <AlertCircle size={10} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
           <form onSubmit={handleSubmit} className="relative w-full">
             <div className={`relative flex items-end gap-2 w-full border rounded-[2rem] p-2 bg-white shadow-2xl transition-all duration-300 ${isImageMode ? 'ring-2 ring-purple-500 border-purple-400' : 'border-slate-200 focus-within:ring-2 focus-within:ring-sky-500/20 focus-within:border-sky-400'}`}>
               <button type="button" onClick={() => fileInputRef.current?.click()} className="p-3 text-slate-400 hover:text-sky-600 transition-colors"><Paperclip className="w-5 h-5" /></button>
@@ -271,16 +285,16 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
                   <Wand2 className="w-5 h-5" />
                 </button>
                 <button type="button" onClick={onStartVoice} className="p-3 text-slate-400 hover:text-emerald-600 transition-colors hidden md:block"><Mic className="w-5 h-5" /></button>
-                <button type="submit" disabled={!input.trim() || isLoading || isGeneratingImage} className={`w-11 h-11 rounded-full flex items-center justify-center disabled:opacity-50 shadow-lg transition-all active:scale-95 ${isImageMode ? 'bg-purple-600 text-white shadow-purple-600/20' : 'bg-sky-600 text-white shadow-sky-600/20 hover:bg-sky-700'}`}>
+                <button type="submit" disabled={!input.trim() && attachments.length === 0 || isLoading || isGeneratingImage} className={`w-11 h-11 rounded-full flex items-center justify-center disabled:opacity-50 shadow-lg transition-all active:scale-95 ${isImageMode ? 'bg-purple-600 text-white shadow-purple-600/20' : 'bg-sky-600 text-white shadow-sky-600/20 hover:bg-sky-700'}`}>
                   <ArrowUp size={24} />
                 </button>
               </div>
             </div>
-            <input type="file" multiple ref={fileInputRef} className="hidden" />
+            <input type="file" multiple ref={fileInputRef} onChange={handleFileChange} className="hidden" />
           </form>
           <div className="flex flex-col items-center mt-3 gap-0.5">
             <span className="font-black text-xl urdu-text text-sky-700 drop-shadow-sm">Urdu AI</span>
-            <p className="text-[10px] text-center text-slate-400 font-bold uppercase tracking-widest urdu-text">گلوبل ریسرچ سینٹر - قاری خالد محمود</p>
+            <p className="text-[10px] text-center text-slate-400 font-bold uppercase tracking-widest urdu-text">گلوبل ریسرچ سینٹر - قاری خالد محمود گولڈ میڈلسٹ</p>
           </div>
         </div>
       </footer>

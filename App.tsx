@@ -32,58 +32,51 @@ const App: React.FC = () => {
     voiceSpeed: 1.0
   });
 
-  // Load initial settings and data
+  // Safe Load initial settings and data
   useEffect(() => {
     const initApp = async () => {
-      // 1. Load Custom Instructions
-      const savedInstructions = localStorage.getItem('chat_grc_custom_instructions');
-      if (savedInstructions) setCustomInstructions(savedInstructions);
-
-      // 2. Load Settings
-      const savedSettings = localStorage.getItem('chat_grc_settings');
-      let currentParsedUser = null;
-      if (savedSettings) {
-        try { 
-          const parsed = JSON.parse(savedSettings);
-          if (typeof parsed.fontSize === 'string') {
-            parsed.fontSize = parsed.fontSize === 'large' ? 22 : 18;
-          }
-          currentParsedUser = parsed.currentUser;
-          setSettings(prev => ({ ...prev, ...parsed })); 
-        } catch (e) {
-          console.error("Settings parse error", e);
-        }
-      }
-
-      // 3. Load Sessions
-      const storageKey = currentParsedUser ? `chat_grc_sessions_${currentParsedUser.id}` : 'chat_grc_sessions_guest';
-      const savedSessions = localStorage.getItem(storageKey);
-      if (savedSessions) {
-        try {
-          const parsed = JSON.parse(savedSessions);
-          if (Array.isArray(parsed) && parsed.length > 0) {
-            setSessions(parsed);
-            setCurrentSessionId(parsed[0].id);
-          }
-        } catch (e) {
-          console.error("Sessions parse error", e);
-        }
-      }
-
-      // 4. API Key Check (Non-blocking)
       try {
-        if (window.aistudio && typeof window.aistudio.hasSelectedApiKey === 'function') {
-          await window.aistudio.hasSelectedApiKey();
-        }
-      } catch (e) {}
+        // 1. Load Custom Instructions
+        const savedInstructions = localStorage.getItem('chat_grc_custom_instructions');
+        if (savedInstructions) setCustomInstructions(savedInstructions);
 
-      setIsAppReady(true);
+        // 2. Load Settings
+        const savedSettings = localStorage.getItem('chat_grc_settings');
+        let currentParsedUser = null;
+        if (savedSettings) {
+          try { 
+            const parsed = JSON.parse(savedSettings);
+            if (typeof parsed.fontSize === 'string') {
+              parsed.fontSize = parsed.fontSize === 'large' ? 22 : 18;
+            }
+            currentParsedUser = parsed.currentUser;
+            setSettings(prev => ({ ...prev, ...parsed })); 
+          } catch (e) {}
+        }
+
+        // 3. Load Sessions
+        const storageKey = currentParsedUser ? `chat_grc_sessions_${currentParsedUser.id}` : 'chat_grc_sessions_guest';
+        const savedSessions = localStorage.getItem(storageKey);
+        if (savedSessions) {
+          try {
+            const parsed = JSON.parse(savedSessions);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              setSessions(parsed);
+              setCurrentSessionId(parsed[0].id);
+            }
+          } catch (e) {}
+        }
+      } catch (e) {
+        console.error("Initialization error:", e);
+      } finally {
+        // Even if some loads fail, make app ready
+        setIsAppReady(true);
+      }
     };
 
     initApp();
   }, []);
 
-  // Handle PWA install prompt
   useEffect(() => {
     const handler = (e: any) => {
       e.preventDefault();
@@ -115,14 +108,12 @@ const App: React.FC = () => {
     chatGRC.resetChat();
   }, [selectedModel]);
 
-  // Ensure there is always a chat if ready
   useEffect(() => {
     if (isAppReady && sessions.length === 0) {
       createNewChat();
     }
   }, [isAppReady, sessions.length, createNewChat]);
 
-  // Sync data to localStorage
   useEffect(() => {
     if (!isAppReady) return;
 
@@ -210,11 +201,8 @@ const App: React.FC = () => {
         });
       }
 
-      const newSuggestions = await chatGRC.generateSuggestions([
-        ...currentSession.messages,
-        userMessage,
-        { role: 'assistant', content: fullResponse }
-      ]);
+      const lastMsgs = [...currentSession.messages, userMessage, { role: 'assistant', content: fullResponse } as Message];
+      const newSuggestions = await chatGRC.generateSuggestions(lastMsgs);
       
       setSessions(prev => prev.map(s => 
         s.id === currentSessionId 
@@ -251,7 +239,7 @@ const App: React.FC = () => {
   const deleteSession = (id: string) => {
     setSessions(prev => {
       const filtered = prev.filter(s => s.id !== id);
-      if (filtered.length === 0) { return []; }
+      if (filtered.length === 0) return [];
       if (id === currentSessionId) setCurrentSessionId(filtered[0].id);
       return filtered;
     });
