@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Sidebar } from './components/Sidebar';
 import { ChatArea } from './components/ChatArea';
 import { LiveMode } from './components/LiveMode';
@@ -7,12 +7,14 @@ import { LoginModal } from './components/LoginModal';
 import { ChatSession, Message, Attachment, UserSettings, User, Contact } from './types';
 import { chatGRC } from './services/geminiService';
 import { NEWS_PROMPT, AI_UPDATES_PROMPT, MOCK_CONTACTS } from './constants';
+import { Loader2, Sparkles } from 'lucide-react';
 
 const App: React.FC = () => {
   const [sessions, setSessions] = useState<ChatSession[]>([]);
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false); 
   const [isLoading, setIsLoading] = useState(false);
+  const [isAppReady, setIsAppReady] = useState(false);
   const [showLiveMode, setShowLiveMode] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
@@ -30,22 +32,58 @@ const App: React.FC = () => {
     voiceSpeed: 1.0
   });
 
+  // Load initial settings and data
   useEffect(() => {
-    const initKey = async () => {
-      try {
-        if (window.aistudio) {
-          const hasKey = await window.aistudio.hasSelectedApiKey();
-          if (!hasKey && !process.env.API_KEY) {
-            console.warn("API Key might be missing.");
+    const initApp = async () => {
+      // 1. Load Custom Instructions
+      const savedInstructions = localStorage.getItem('chat_grc_custom_instructions');
+      if (savedInstructions) setCustomInstructions(savedInstructions);
+
+      // 2. Load Settings
+      const savedSettings = localStorage.getItem('chat_grc_settings');
+      let currentParsedUser = null;
+      if (savedSettings) {
+        try { 
+          const parsed = JSON.parse(savedSettings);
+          if (typeof parsed.fontSize === 'string') {
+            parsed.fontSize = parsed.fontSize === 'large' ? 22 : 18;
           }
+          currentParsedUser = parsed.currentUser;
+          setSettings(prev => ({ ...prev, ...parsed })); 
+        } catch (e) {
+          console.error("Settings parse error", e);
         }
-      } catch (e) {
-        console.error("Key init error", e);
       }
+
+      // 3. Load Sessions
+      const storageKey = currentParsedUser ? `chat_grc_sessions_${currentParsedUser.id}` : 'chat_grc_sessions_guest';
+      const savedSessions = localStorage.getItem(storageKey);
+      if (savedSessions) {
+        try {
+          const parsed = JSON.parse(savedSessions);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            setSessions(parsed);
+            setCurrentSessionId(parsed[0].id);
+          }
+        } catch (e) {
+          console.error("Sessions parse error", e);
+        }
+      }
+
+      // 4. API Key Check (Non-blocking)
+      try {
+        if (window.aistudio && typeof window.aistudio.hasSelectedApiKey === 'function') {
+          await window.aistudio.hasSelectedApiKey();
+        }
+      } catch (e) {}
+
+      setIsAppReady(true);
     };
-    initKey();
+
+    initApp();
   }, []);
 
+  // Handle PWA install prompt
   useEffect(() => {
     const handler = (e: any) => {
       e.preventDefault();
@@ -77,71 +115,29 @@ const App: React.FC = () => {
     chatGRC.resetChat();
   }, [selectedModel]);
 
-  const startChatWithContact = (contact: Contact) => {
-    const existing = sessions.find(s => s.contactId === contact.id);
-    if (existing) {
-      setCurrentSessionId(existing.id);
-      setIsSidebarOpen(false);
-      return;
-    }
-
-    const newId = `contact_${contact.id}_${Date.now()}`;
-    const newSession: ChatSession = {
-      id: newId,
-      title: contact.name,
-      messages: [],
-      createdAt: Date.now(),
-      updatedAt: Date.now(),
-      model: selectedModel,
-      contactId: contact.id
-    };
-    setSessions(prev => [newSession, ...prev]);
-    setCurrentSessionId(newId);
-    setIsSidebarOpen(false);
-    chatGRC.resetChat();
-  };
-
+  // Ensure there is always a chat if ready
   useEffect(() => {
-    const savedInstructions = localStorage.getItem('chat_grc_custom_instructions');
-    const savedSettings = localStorage.getItem('chat_grc_settings');
-    if (savedInstructions) setCustomInstructions(savedInstructions);
-    if (savedSettings) {
-      try { 
-        const parsed = JSON.parse(savedSettings);
-        if (typeof parsed.fontSize === 'string') {
-          parsed.fontSize = parsed.fontSize === 'large' ? 22 : 18;
-        }
-        setSettings(prev => ({ ...prev, ...parsed })); 
-      } catch (e) {}
+    if (isAppReady && sessions.length === 0) {
+      createNewChat();
     }
-  }, []);
+  }, [isAppReady, sessions.length, createNewChat]);
 
+  // Sync data to localStorage
   useEffect(() => {
-    if (settings.currentUser) {
-      const saved = localStorage.getItem(`chat_grc_sessions_${settings.currentUser.id}`);
-      if (saved) {
-        try {
-          const parsed = JSON.parse(saved);
-          if (Array.isArray(parsed) && parsed.length > 0) {
-            setSessions(parsed);
-            setCurrentSessionId(parsed[0].id);
-          } else { createNewChat(); }
-        } catch (e) { createNewChat(); }
-      } else { createNewChat(); }
-    } else if (sessions.length === 0) { createNewChat(); }
-  }, [settings.currentUser, createNewChat]);
+    if (!isAppReady) return;
 
-  useEffect(() => {
-    if (settings.currentUser) {
-      localStorage.setItem(`chat_grc_sessions_${settings.currentUser.id}`, JSON.stringify(sessions));
-    }
+    const storageKey = settings.currentUser ? `chat_grc_sessions_${settings.currentUser.id}` : 'chat_grc_sessions_guest';
+    localStorage.setItem(storageKey, JSON.stringify(sessions));
     localStorage.setItem('chat_grc_settings', JSON.stringify(settings));
+    localStorage.setItem('chat_grc_custom_instructions', customInstructions);
+
     document.body.className = settings.highContrast ? 'high-contrast bg-slate-950 text-white' : 'bg-[#f8fafc] text-slate-900';
     document.documentElement.classList.toggle('dark', settings.highContrast);
-    localStorage.setItem('chat_grc_custom_instructions', customInstructions);
-  }, [sessions, settings, customInstructions]);
+  }, [sessions, settings, customInstructions, isAppReady]);
 
-  const currentSession = sessions.find(s => s.id === currentSessionId) || null;
+  const currentSession = useMemo(() => 
+    sessions.find(s => s.id === currentSessionId) || null
+  , [sessions, currentSessionId]);
 
   const handleSendMessage = async (content: string, attachments: Attachment[] = []) => {
     if (!currentSessionId || !currentSession) return;
@@ -255,7 +251,7 @@ const App: React.FC = () => {
   const deleteSession = (id: string) => {
     setSessions(prev => {
       const filtered = prev.filter(s => s.id !== id);
-      if (filtered.length === 0) { setTimeout(() => createNewChat(), 0); return []; }
+      if (filtered.length === 0) { return []; }
       if (id === currentSessionId) setCurrentSessionId(filtered[0].id);
       return filtered;
     });
@@ -273,6 +269,27 @@ const App: React.FC = () => {
     }
   };
 
+  if (!isAppReady) {
+    return (
+      <div className="fixed inset-0 bg-[#0c4a6e] flex flex-col items-center justify-center z-[9999]">
+        <div className="relative mb-8">
+          <div className="w-24 h-24 bg-white/10 rounded-3xl flex items-center justify-center border border-white/20 shadow-2xl animate-pulse">
+            <Sparkles size={48} className="text-sky-300" />
+          </div>
+          <div className="absolute -top-1 -right-1 w-6 h-6 bg-emerald-500 rounded-full border-4 border-[#0c4a6e] animate-bounce" />
+        </div>
+        <div className="text-center space-y-4 px-6">
+          <h1 className="text-3xl font-black text-white urdu-text tracking-tight">اردو اے آئی</h1>
+          <div className="flex items-center gap-3 bg-white/5 px-6 py-3 rounded-2xl border border-white/10 backdrop-blur-md">
+            <Loader2 className="w-5 h-5 text-sky-400 animate-spin" />
+            <p className="text-sky-100 urdu-text font-bold">تحقیق کا آغاز ہو رہا ہے...</p>
+          </div>
+          <p className="text-sky-300/40 text-[10px] uppercase font-black tracking-widest">Global Research Centre by Qari Khalid Mahmood</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className={`flex h-screen w-full overflow-hidden ${getFontClass()}`}>
       <Sidebar 
@@ -280,7 +297,27 @@ const App: React.FC = () => {
         activeId={currentSessionId}
         onSelect={setCurrentSessionId}
         onNewChat={createNewChat}
-        onSelectContact={startChatWithContact}
+        onSelectContact={(c) => {
+          const existing = sessions.find(s => s.contactId === c.id);
+          if (existing) {
+            setCurrentSessionId(existing.id);
+          } else {
+            const newId = `contact_${c.id}_${Date.now()}`;
+            const newSession: ChatSession = {
+              id: newId,
+              title: c.name,
+              messages: [],
+              createdAt: Date.now(),
+              updatedAt: Date.now(),
+              model: selectedModel,
+              contactId: c.id
+            };
+            setSessions(prev => [newSession, ...prev]);
+            setCurrentSessionId(newId);
+          }
+          setIsSidebarOpen(false);
+          chatGRC.resetChat();
+        }}
         onDelete={deleteSession}
         isOpen={isSidebarOpen}
         setIsOpen={setIsSidebarOpen}
@@ -288,7 +325,11 @@ const App: React.FC = () => {
         setSettings={setSettings}
         customInstructions={customInstructions}
         setCustomInstructions={setCustomInstructions}
-        onLogout={() => setSettings({...settings, currentUser: null})}
+        onLogout={() => {
+          setSettings(prev => ({ ...prev, currentUser: null }));
+          setSessions([]);
+          setCurrentSessionId(null);
+        }}
         onShowLogin={() => setShowLoginModal(true)}
         onSendFeedback={handleWhatsAppFeedback}
         onInstall={deferredPrompt ? handleInstall : undefined}
@@ -311,7 +352,7 @@ const App: React.FC = () => {
       {showLiveMode && <LiveMode settings={settings} onClose={() => setShowLiveMode(false)} />}
       {showLoginModal && (
         <LoginModal 
-          onLogin={(u) => { setSettings({...settings, currentUser: u}); setShowLoginModal(false); }} 
+          onLogin={(u) => { setSettings(prev => ({...prev, currentUser: u})); setShowLoginModal(false); }} 
           onClose={() => setShowLoginModal(false)} 
         />
       )}
