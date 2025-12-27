@@ -113,7 +113,7 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
           <button onClick={onToggleSidebar} className="p-2 hover:bg-white/20 rounded-xl text-white transition-all active:scale-90 shrink-0">
             <Menu className="w-6 h-6" />
           </button>
-          <span className="font-black text-2xl md:text-3xl urdu-text text-white drop-shadow-md truncate max-w-[110px] md:max-w-none">Urdu AI</span>
+          {/* Urdu AI text removed from header */}
         </div>
 
         <div className="flex items-center gap-1.5 md:gap-2.5 overflow-x-auto no-scrollbar py-1">
@@ -234,7 +234,11 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
             </div>
             <input type="file" multiple ref={fileInputRef} className="hidden" />
           </form>
-          <p className="text-[10px] text-center mt-3 text-slate-400 font-bold uppercase tracking-widest urdu-text">گلوبل ریسرچ سینٹر - قاری خالد محمود</p>
+          {/* Urdu AI text added to footer here */}
+          <div className="flex flex-col items-center mt-3 gap-0.5">
+            <span className="font-black text-xl urdu-text text-sky-700 drop-shadow-sm">Urdu AI</span>
+            <p className="text-[10px] text-center text-slate-400 font-bold uppercase tracking-widest urdu-text">گلوبل ریسرچ سینٹر - قاری خالد محمود</p>
+          </div>
         </div>
       </footer>
     </div>
