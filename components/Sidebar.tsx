@@ -1,8 +1,7 @@
-
 import React, { useState } from 'react';
-import { Plus, MessageSquare, Trash2, X, Type, Volume2, Accessibility, MessageCircle, Sparkles, Info, LogOut, User as UserIcon, LogIn, Download, BookOpen, RefreshCw, CheckCircle2, Award, History, RotateCcw, HelpCircle, Minus, Users, ExternalLink, Key } from 'lucide-react';
+import { Plus, Trash2, X, Type, MessageCircle, Sparkles, Info, LogOut, User as UserIcon, LogIn, History, HelpCircle, Minus, ExternalLink, Key, Share2, Volume2 } from 'lucide-react';
 import { ChatSession, UserSettings, Contact } from '../types';
-import { ABOUT_TEXT, USAGE_PROCEDURE_TEXT, APP_VERSION, MOCK_CONTACTS, WHATSAPP_LINK, OFFICIAL_WHATSAPP_NUMBER } from '../constants';
+import { ABOUT_TEXT, USAGE_PROCEDURE_TEXT, WHATSAPP_LINK, OFFICIAL_WHATSAPP_NUMBER } from '../constants';
 
 interface SidebarProps {
   sessions: ChatSession[];
@@ -20,7 +19,6 @@ interface SidebarProps {
   onLogout: () => void;
   onShowLogin: () => void;
   onSendFeedback: () => void;
-  onInstall?: () => void;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -28,7 +26,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
   activeId,
   onSelect,
   onNewChat,
-  onSelectContact,
   onDelete,
   isOpen,
   setIsOpen,
@@ -36,30 +33,34 @@ export const Sidebar: React.FC<SidebarProps> = ({
   setSettings,
   onLogout,
   onShowLogin,
-  onSendFeedback,
-  onInstall
+  onSendFeedback
 }) => {
   const [activePopover, setActivePopover] = useState<'about' | 'usage' | 'whatsapp' | null>(null);
 
-  const toggleHighContrast = () => setSettings({...settings, highContrast: !settings.highContrast});
-  
-  const increaseFontSize = () => {
-    setSettings({...settings, fontSize: Math.min(settings.fontSize + 2, 40)});
-  };
-
-  const decreaseFontSize = () => {
-    setSettings({...settings, fontSize: Math.max(settings.fontSize - 2, 12)});
-  };
-
-  const resetFontSize = () => {
-    setSettings({...settings, fontSize: 18});
-  };
-
+  const increaseFontSize = () => setSettings({...settings, fontSize: Math.min(settings.fontSize + 2, 40)});
+  const decreaseFontSize = () => setSettings({...settings, fontSize: Math.max(settings.fontSize - 2, 12)});
+  const resetFontSize = () => setSettings({...settings, fontSize: 18});
   const setFont = (fam: 'naskh' | 'nastaleeq' | 'sans') => setSettings({...settings, fontFamily: fam});
+  const setVoice = (voice: any) => setSettings({...settings, voiceName: voice});
 
   const handleOpenKeyDialog = async () => {
     if ((window as any).aistudio?.openSelectKey) {
       await (window as any).aistudio.openSelectKey();
+    }
+  };
+
+  const handleShareApp = async () => {
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: 'Urdu AI - اردو اے آئی',
+          text: 'قاری خالد محمود گولڈ میڈلسٹ کا مستند تحقیقی اسسٹنٹ۔ قرآن، حدیث اور علوم اسلامیہ پر تفصیلی تحقیق کے لیے ابھی جوائن کریں۔',
+          url: window.location.origin,
+        });
+      } catch (err) {}
+    } else {
+      navigator.clipboard.writeText(window.location.origin);
+      alert('ایپ کا لنک کاپی کر لیا گیا ہے۔');
     }
   };
 
@@ -87,7 +88,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     <span className={`text-[9px] font-black uppercase tracking-widest ${settings.highContrast ? 'text-sky-400' : 'text-sky-300'}`}>Urdu AI User</span>
                   </div>
                 </div>
-                <button onClick={onLogout} className="p-2 text-white/50 hover:text-white hover:bg-white/10 rounded-lg transition-all" title="لاگ آؤٹ">
+                <button onClick={onLogout} className="p-2 text-white/50 hover:text-white hover:bg-white/10 rounded-lg transition-all">
                   <LogOut size={16} />
                 </button>
               </div>
@@ -144,27 +145,52 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </div>
 
           <div className={`p-4 border-t space-y-3 ${settings.highContrast ? 'border-slate-800 bg-black/40' : 'border-white/10 bg-black/20'}`}>
-            <button 
-              onClick={handleOpenKeyDialog}
-              className="w-full flex items-center gap-3 px-4 py-3 text-xs rounded-xl transition-all text-white bg-sky-500/20 hover:bg-sky-500/30 border border-sky-500/20 active:scale-[0.98]"
-            >
-              <Key size={16} className="text-sky-400" />
-              <span className="urdu-text flex-1 text-right font-black" dir="rtl">API Key تبدیل کریں</span>
-            </button>
+            <div className="space-y-1.5">
+               <div className="flex items-center gap-2 px-1 mb-1 opacity-50">
+                 <Volume2 size={12} className="text-white" />
+                 <span className="text-[10px] font-black text-white uppercase tracking-widest urdu-text">آواز کا انتخاب</span>
+               </div>
+               <div className="flex gap-1">
+                 {['Kore', 'Zephyr', 'Fenrir', 'Puck'].map((v) => (
+                   <button 
+                     key={v}
+                     onClick={() => setVoice(v)}
+                     className={`flex-1 py-1.5 px-0.5 rounded-lg text-[9px] font-black border transition-all ${settings.voiceName === v ? 'bg-white/20 border-white text-white shadow-md scale-105' : 'border-white/5 text-white/30 hover:bg-white/5'}`}
+                   >
+                     {v === 'Kore' ? 'کورے' : v === 'Zephyr' ? 'زیفر' : v === 'Fenrir' ? 'فینرر' : 'پک'}
+                   </button>
+                 ))}
+               </div>
+            </div>
 
-            <div className="flex flex-col gap-2">
-              <div className="flex bg-white/5 rounded-xl border border-white/10 overflow-hidden items-center">
-                <button onClick={decreaseFontSize} className="p-3 flex items-center justify-center text-white/70 hover:bg-white/10 transition-all active:scale-90 border-r border-white/10" title="کم کریں">
-                  <Minus size={16} />
-                </button>
-                <button onClick={resetFontSize} className="flex-1 flex flex-col items-center justify-center p-1 hover:bg-white/5 transition-colors" title="ری سیٹ">
-                  <Type size={14} className="text-sky-300" />
-                  <span className="text-[10px] font-black text-white">{settings.fontSize}px</span>
-                </button>
-                <button onClick={increaseFontSize} className="p-3 flex items-center justify-center text-white/70 hover:bg-white/10 transition-all active:scale-90 border-l border-white/10" title="زیادہ کریں">
-                  <Plus size={16} />
-                </button>
-              </div>
+            <div className="grid grid-cols-2 gap-2">
+              <button 
+                onClick={handleOpenKeyDialog}
+                className="flex items-center gap-3 px-4 py-3 text-xs rounded-xl transition-all text-white bg-sky-500/20 hover:bg-sky-500/30 border border-sky-500/20 active:scale-[0.98]"
+              >
+                <Key size={14} className="text-sky-400" />
+                <span className="urdu-text flex-1 text-right font-black" dir="rtl">Key</span>
+              </button>
+              <button 
+                onClick={handleShareApp}
+                className="flex items-center gap-3 px-4 py-3 text-xs rounded-xl transition-all text-white bg-indigo-500/20 hover:bg-indigo-500/30 border border-indigo-500/20 active:scale-[0.98]"
+              >
+                <Share2 size={14} className="text-indigo-400" />
+                <span className="urdu-text flex-1 text-right font-black" dir="rtl">شیئر</span>
+              </button>
+            </div>
+
+            <div className="flex bg-white/5 rounded-xl border border-white/10 overflow-hidden items-center">
+              <button onClick={decreaseFontSize} className="p-3 flex items-center justify-center text-white/70 hover:bg-white/10 transition-all active:scale-90 border-r border-white/10" title="کم کریں">
+                <Minus size={16} />
+              </button>
+              <button onClick={resetFontSize} className="flex-1 flex flex-col items-center justify-center p-1 hover:bg-white/5 transition-colors" title="ری سیٹ">
+                <Type size={14} className="text-sky-300" />
+                <span className="text-[10px] font-black text-white">{settings.fontSize}px</span>
+              </button>
+              <button onClick={increaseFontSize} className="p-3 flex items-center justify-center text-white/70 hover:bg-white/10 transition-all active:scale-90 border-l border-white/10" title="زیادہ کریں">
+                <Plus size={16} />
+              </button>
             </div>
 
             <div className="flex gap-1.5">
