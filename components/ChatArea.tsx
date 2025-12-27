@@ -74,7 +74,13 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
   const handleSubmit = (e?: React.FormEvent) => {
     e?.preventDefault();
     setError(null);
-    if (isListeningInput) recognitionRef.current.stop();
+    if (isListeningInput && recognitionRef.current) {
+      try {
+        recognitionRef.current.stop();
+      } catch (err) {
+        console.warn("Speech recognition stop failed", err);
+      }
+    }
     if ((input.trim() || attachments.length > 0) && !isLoading) {
       onSendMessage(input, attachments);
       setInput('');

@@ -14,12 +14,14 @@ interface MessageBubbleProps {
 
 type AudioState = 'idle' | 'loading' | 'playing' | 'paused';
 
+// Global shared audio context to prevent "Too many AudioContexts" errors
+let sharedAudioContext: AudioContext | null = null;
+
 export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, settings, contact, onSuggestionClick }) => {
   const isAssistant = message.role === 'assistant';
   const [copied, setCopied] = useState(false);
   const [audioState, setAudioState] = useState<AudioState>('idle');
   
-  const audioContextRef = useRef<AudioContext | null>(null);
   const audioBufferRef = useRef<AudioBuffer | null>(null);
   const sourceNodeRef = useRef<AudioBufferSourceNode | null>(null);
   const startTimeRef = useRef<number>(0);
@@ -71,14 +73,26 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, settings,
     }
   };
 
+  const getAudioContext = () => {
+    if (!sharedAudioContext) {
+      const AudioContextClass = (window as any).AudioContext || (window as any).webkitAudioContext;
+      sharedAudioContext = new AudioContextClass({ sampleRate: 24000 });
+    }
+    if (sharedAudioContext?.state === 'suspended') {
+      sharedAudioContext.resume();
+    }
+    return sharedAudioContext;
+  };
+
   const handleSpeak = async () => {
     if (audioState === 'playing') {
       if (sourceNodeRef.current) {
         try { sourceNodeRef.current.stop(); } catch(e) {}
         sourceNodeRef.current = null;
       }
-      if (audioContextRef.current) {
-        const elapsedSinceStart = audioContextRef.current.currentTime - startTimeRef.current;
+      const ctx = getAudioContext();
+      if (ctx) {
+        const elapsedSinceStart = ctx.currentTime - startTimeRef.current;
         offsetRef.current += elapsedSinceStart * settings.voiceSpeed;
       }
       setAudioState('paused');
@@ -97,15 +111,17 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, settings,
       try {
         const audioData = atob(base64Audio);
         const arrayBuffer = new Uint8Array(audioData.length).map((_, i) => audioData.charCodeAt(i)).buffer;
-        const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
-        audioContextRef.current = audioCtx;
+        const ctx = getAudioContext();
+        if (!ctx) throw new Error("AudioContext failed");
+
         const dataInt16 = new Int16Array(arrayBuffer);
-        const buffer = audioCtx.createBuffer(1, dataInt16.length, 24000);
+        const buffer = ctx.createBuffer(1, dataInt16.length, 24000);
         const channelData = buffer.getChannelData(0);
         for (let i = 0; i < dataInt16.length; i++) channelData[i] = dataInt16[i] / 32768.0;
         audioBufferRef.current = buffer;
         playFromOffset(0);
       } catch (err) {
+        console.error("Audio Playback Error:", err);
         setAudioState('idle');
       }
     } else {
@@ -114,19 +130,24 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, settings,
   };
 
   const playFromOffset = (offset: number) => {
-    if (!audioContextRef.current || !audioBufferRef.current) return;
-    const source = audioContextRef.current.createBufferSource();
+    const ctx = getAudioContext();
+    if (!ctx || !audioBufferRef.current) return;
+    
+    const source = ctx.createBufferSource();
     source.buffer = audioBufferRef.current;
     source.playbackRate.value = settings.voiceSpeed;
-    const gainNode = audioContextRef.current.createGain();
+    const gainNode = ctx.createGain();
     source.connect(gainNode);
-    gainNode.connect(audioContextRef.current.destination);
+    gainNode.connect(ctx.destination);
+    
     const duration = audioBufferRef.current.duration;
     const startPos = Math.max(0, Math.min(offset, duration - 0.01));
+    
     source.start(0, startPos);
     sourceNodeRef.current = source;
-    startTimeRef.current = audioContextRef.current.currentTime;
+    startTimeRef.current = ctx.currentTime;
     setAudioState('playing');
+    
     source.onended = () => {
       if (sourceNodeRef.current === source) {
         setAudioState('idle');
@@ -247,10 +268,10 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, settings,
 
             <div className="flex items-center gap-1.5 bg-white/60 backdrop-blur-md rounded-full p-1.5 border border-slate-100 shadow-sm">
               <button onClick={handleCopy} className={`p-2.5 rounded-full transition-all active:scale-90 ${settings.highContrast ? 'text-slate-400 hover:text-white' : 'text-slate-400 hover:text-[#0369a1] hover:bg-slate-100'}`} title="کاپی">
-                {copied ? <Check className="w-4.5 h-4.5 text-emerald-500" /> : <Copy className="w-4.5 h-4.5" />}
+                {copied ? <Check className="w-5 h-5 text-emerald-500" /> : <Copy className="w-5 h-5" />}
               </button>
               <button onClick={handleShare} className={`p-2.5 rounded-full transition-all active:scale-90 ${settings.highContrast ? 'text-slate-400 hover:text-white' : 'text-slate-400 hover:text-[#0369a1] hover:bg-slate-100'}`} title="شیئر">
-                <Share2 className="w-4.5 h-4.5" />
+                <Share2 className="w-5 h-5" />
               </button>
             </div>
           </div>

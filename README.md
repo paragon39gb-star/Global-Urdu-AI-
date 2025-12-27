@@ -1,20 +1,47 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
 
-# Run and deploy your AI Studio app
+# 🌟 Urdu AI (اردو اے آئی)
 
-This contains everything you need to run your app locally.
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2F%5BUSER_NAME%5D%2F%5BREPO_NAME%5D&env=API_KEY)
+[![Deploy to Netlify](https://www.netlify.com/img/deploy/button.svg)](https://app.netlify.com/start/deploy?repository=https://github.com/[USER_NAME]/[REPO_NAME])
 
-View your app in AI Studio: https://ai.studio/apps/drive/1DY8R1s607yxHKlFUHubiP74PSnUElyYb
+یہ ایپلیکیشن گلوبل ریسرچ سینٹر (GRC) کے تحت **قاری خالد محمود گولڈ میڈلسٹ** کا ایک تحقیقی شاہکار ہے۔ یہ ایک جدید تحقیقی انجن ہے جو قرآن، حدیث، فقہ اور سائنسی علوم پر مستند مواد فراہم کرتا ہے۔
 
-## Run Locally
+## 🚀 براہِ راست استعمال (Direct Deployment)
 
-**Prerequisites:**  Node.js
+اگر آپ اسے GitHub سے براہِ راست استعمال کرنا چاہتے ہیں تو اوپر موجود **"Deploy with Vercel"** بٹن پر کلک کریں۔ یہ خود بخود آپ کے لیے سیٹ اپ کر دے گا۔
 
+### اہم نوٹ:
+ڈیپلائمنٹ کے دوران آپ سے `API_KEY` مانگی جائے گی۔ آپ اپنی کی (Key) یہاں سے حاصل کر سکتے ہیں: [Google AI Studio](https://aistudio.google.com/app/apikey)
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+## 💻 مقامی کمپیوٹر پر سیٹ اپ (Local Installation)
+
+1. **Repository کلون کریں:**
+   ```bash
+   git clone https://github.com/[USER_NAME]/[REPO_NAME].git
+   cd [REPO_NAME]
+   ```
+
+2. **لائبریریز انسٹال کریں:**
+   ```bash
+   npm install
+   ```
+
+3. **Environment Variable ترتیب دیں:**
+   `.env.example` فائل کو کاپی کر کے ایک نئی فائل `.env` بنائیں اور اس میں اپنی API Key درج کریں۔
+
+4. **ایپ چلائیں:**
+   ```bash
+   npm run dev
+   ```
+
+## ✨ نمایاں خصوصیات
+- **سعیدی اسلوب:** علامہ غلام رسول سعیدی صاحب کے تحقیقی انداز میں جوابات۔
+- **اسلام 360 حوالہ جات:** ہر حدیث کے ساتھ مستند انٹرنیشنل نمبرنگ۔
+- **لائیو گفتگو:** آواز کے ذریعے سوال و جواب کی سہولت۔
+- **جدید UI/UX:** خوبصورت اردو فونٹس (نستعلیق و نسخ) اور ڈارک موڈ۔
+- **PWA سپورٹ:** موبائل پر بطور ایپ انسٹال کرنے کی سہولت۔
+
+---
+**تخلیق کار:** قاری خالد محمود گولڈ میڈلسٹ  
+**ادارہ:** گلوبل ریسرچ سینٹر (GRC)  
+**ورژن:** 8.5.0

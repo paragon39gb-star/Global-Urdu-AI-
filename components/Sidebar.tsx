@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Plus, MessageSquare, Trash2, X, Type, Volume2, Accessibility, MessageCircle, Sparkles, Info, LogOut, User as UserIcon, LogIn, Download, BookOpen, RefreshCw, CheckCircle2, Award, History, RotateCcw, HelpCircle, Minus, Users, ExternalLink } from 'lucide-react';
+import { Plus, MessageSquare, Trash2, X, Type, Volume2, Accessibility, MessageCircle, Sparkles, Info, LogOut, User as UserIcon, LogIn, Download, BookOpen, RefreshCw, CheckCircle2, Award, History, RotateCcw, HelpCircle, Minus, Users, ExternalLink, Key } from 'lucide-react';
 import { ChatSession, UserSettings, Contact } from '../types';
 import { ABOUT_TEXT, USAGE_PROCEDURE_TEXT, APP_VERSION, MOCK_CONTACTS, WHATSAPP_LINK, OFFICIAL_WHATSAPP_NUMBER } from '../constants';
 
@@ -57,6 +57,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   const setFont = (fam: 'naskh' | 'nastaleeq' | 'sans') => setSettings({...settings, fontFamily: fam});
 
+  const handleOpenKeyDialog = async () => {
+    if ((window as any).aistudio?.openSelectKey) {
+      await (window as any).aistudio.openSelectKey();
+    }
+  };
+
   return (
     <>
       {isOpen && (
@@ -71,14 +77,19 @@ export const Sidebar: React.FC<SidebarProps> = ({
           
           <div className={`p-5 border-b shrink-0 flex items-center justify-between ${settings.highContrast ? 'border-slate-800 bg-slate-800/30' : 'border-white/10 bg-white/5'}`}>
             {settings.currentUser ? (
-              <div className="flex items-center gap-3">
-                <div className={`w-10 h-10 rounded-xl flex items-center justify-center border ${settings.highContrast ? 'bg-sky-500/20 border-sky-500/30' : 'bg-sky-500/20 border-white/10'}`}>
-                  <UserIcon size={20} className="text-sky-300" />
+              <div className="flex items-center justify-between w-full">
+                <div className="flex items-center gap-3">
+                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center border ${settings.highContrast ? 'bg-sky-500/20 border-sky-500/30' : 'bg-sky-500/20 border-white/10'}`}>
+                    <UserIcon size={20} className="text-sky-300" />
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-sm font-black text-white urdu-text" dir="rtl">{settings.currentUser.name}</span>
+                    <span className={`text-[9px] font-black uppercase tracking-widest ${settings.highContrast ? 'text-sky-400' : 'text-sky-300'}`}>Urdu AI User</span>
+                  </div>
                 </div>
-                <div className="flex flex-col">
-                  <span className="text-sm font-black text-white urdu-text" dir="rtl">{settings.currentUser.name}</span>
-                  <span className={`text-[9px] font-black uppercase tracking-widest ${settings.highContrast ? 'text-sky-400' : 'text-sky-300'}`}>Urdu AI User</span>
-                </div>
+                <button onClick={onLogout} className="p-2 text-white/50 hover:text-white hover:bg-white/10 rounded-lg transition-all" title="لاگ آؤٹ">
+                  <LogOut size={16} />
+                </button>
               </div>
             ) : (
               <button onClick={onShowLogin} className="flex items-center gap-2 px-4 py-2 bg-white text-[#0c4a6e] rounded-xl font-black transition-all text-xs urdu-text active:scale-95 shadow-lg">
@@ -105,8 +116,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </div>
 
           <div className="flex-1 overflow-y-auto px-4 space-y-6 no-scrollbar py-2 overscroll-contain">
-            
-            {/* Previous Research Section */}
             <div className="space-y-2">
               <div className="px-2 mb-2 flex items-center gap-2 opacity-50">
                 <History size={12} className="text-white" />
@@ -135,6 +144,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </div>
 
           <div className={`p-4 border-t space-y-3 ${settings.highContrast ? 'border-slate-800 bg-black/40' : 'border-white/10 bg-black/20'}`}>
+            <button 
+              onClick={handleOpenKeyDialog}
+              className="w-full flex items-center gap-3 px-4 py-3 text-xs rounded-xl transition-all text-white bg-sky-500/20 hover:bg-sky-500/30 border border-sky-500/20 active:scale-[0.98]"
+            >
+              <Key size={16} className="text-sky-400" />
+              <span className="urdu-text flex-1 text-right font-black" dir="rtl">API Key تبدیل کریں</span>
+            </button>
+
             <div className="flex flex-col gap-2">
               <div className="flex bg-white/5 rounded-xl border border-white/10 overflow-hidden items-center">
                 <button onClick={decreaseFontSize} className="p-3 flex items-center justify-center text-white/70 hover:bg-white/10 transition-all active:scale-90 border-r border-white/10" title="کم کریں">
