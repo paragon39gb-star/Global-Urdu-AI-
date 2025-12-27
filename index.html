@@ -1,25 +1,28 @@
+
 <!DOCTYPE html>
-<html lang="ur">
+<html lang="ur" dir="rtl">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Urdu AI - اردو اے آئی</title>
     
     <!-- PWA Meta Tags -->
-    <link rel="manifest" href="manifest.json">
+    <link rel="manifest" href="./manifest.json">
     <meta name="theme-color" content="#0369a1">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Urdu AI">
     
-    <!-- Icons -->
-    <link rel="icon" type="image/png" href="https://img.icons8.com/fluency/96/sparkling-light.png">
+    <!-- Icons for PWA and Mobile -->
+    <link rel="icon" type="image/png" sizes="32x32" href="https://img.icons8.com/fluency/32/sparkling-light.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="https://img.icons8.com/fluency/16/sparkling-light.png">
     <link rel="apple-touch-icon" href="https://img.icons8.com/fluency/180/sparkling-light.png">
     
-    <!-- CSS and Fonts -->
+    <!-- Tailwind and Fonts -->
     <script src="https://cdn.tailwindcss.com?plugins=typography"></script>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Naskh+Arabic:wght@400;700&family=Noto+Sans+Arabic:wght@400;700&family=Inter:wght@400;600&display=swap" rel="stylesheet">
+    
     <style>
         @font-face {
             font-family: 'Jameel Noori Nastaleeq';
@@ -32,92 +35,51 @@
             --font-nastaleeq: 'Jameel Noori Nastaleeq', 'Noto Naskh Arabic', serif;
             --font-sans: 'Noto Sans Arabic', sans-serif;
             --font-english: 'Inter', sans-serif;
-            --bg-main: #f8fafc;
-            --bg-header: linear-gradient(135deg, #0369a1 0%, #075985 100%);
-            --bg-sidebar: #0c4a6e;
-            --text-primary: #000000;
-            --text-accent: #000080;
-            --accent-gold: #d4af37;
         }
 
         body {
-            background-color: var(--bg-main);
-            color: var(--text-primary);
+            background-color: #f8fafc;
             margin: 0;
+            padding: 0;
             height: 100vh;
-            height: -webkit-fill-available;
             overflow: hidden;
             font-family: var(--font-sans);
-            -webkit-font-smoothing: antialiased;
+            -webkit-tap-highlight-color: transparent;
         }
 
         .urdu-font-naskh { font-family: var(--font-naskh); }
-        .urdu-font-nastaleeq { font-family: var(--font-nastaleeq); font-weight: 500; }
-        .urdu-font-sans { font-family: var(--font-sans); font-weight: 500; }
-
-        .urdu-text { 
-            line-height: 1.6; 
-            letter-spacing: 0.01em;
-        }
-
+        .urdu-font-nastaleeq { font-family: var(--font-nastaleeq); }
+        .urdu-font-sans { font-family: var(--font-sans); }
+        .urdu-text { line-height: 1.8; }
+        
         .no-scrollbar::-webkit-scrollbar { display: none; }
-        
-        @keyframes fade-in-up {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        .animate-bubble {
-            animation: fade-in-up 0.35s ease-out forwards;
-        }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
-        .max-w-chat {
-            max-width: 36rem;
-        }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .animate-fade-in { animation: fadeIn 0.3s ease-in; }
 
-        .prose {
-            color: inherit !important;
-            max-width: none;
-        }
-        .prose strong { color: inherit !important; font-weight: 900; }
-        .prose h1, .prose h2, .prose h3 { color: var(--text-accent) !important; font-weight: 900; }
-        .prose p { margin-top: 0.5em; margin-bottom: 0.5em; }
-        .prose ul, .prose ol { padding-right: 1.5rem; padding-left: 0; }
-        .prose li { margin-top: 0.25em; margin-bottom: 0.25em; }
-        .prose code { background-color: rgba(0,0,0,0.05); padding: 0.2em 0.4em; border-radius: 4px; font-family: var(--font-english); }
-        
-        .glass-header {
-            background: rgba(3, 105, 161, 0.95);
-            backdrop-filter: blur(10px);
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        body.high-contrast {
-            background-color: #020617 !important;
-            color: #f8fafc !important;
-            --text-primary: #f8fafc;
-            --text-accent: #38bdf8;
-        }
-        body.high-contrast .prose { color: #f8fafc !important; }
-        body.high-contrast .prose h1, body.high-contrast .prose h2, body.high-contrast .prose h3 { color: #38bdf8 !important; }
-        body.high-contrast .prose code { background-color: rgba(255,255,255,0.1); color: #38bdf8; }
+        .max-w-chat { max-width: 48rem; }
     </style>
-<script type="importmap">
+
+    <script type="importmap">
 {
   "imports": {
-    "react": "https://esm.sh/react@^19.2.3",
+    "react": "https://esm.sh/react@19.0.0",
+    "react-dom": "https://esm.sh/react-dom@19.0.0",
+    "react-dom/client": "https://esm.sh/react-dom@19.0.0/client",
+    "@google/genai": "https://esm.sh/@google/genai@1.34.0",
+    "lucide-react": "https://esm.sh/lucide-react@0.460.0",
+    "marked": "https://esm.sh/marked@15.0.0",
+    "@vitejs/plugin-react": "https://esm.sh/@vitejs/plugin-react@^5.1.2",
     "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
     "react/": "https://esm.sh/react@^19.2.3/",
-    "@google/genai": "https://esm.sh/@google/genai@^1.34.0",
-    "lucide-react": "https://esm.sh/lucide-react@^0.562.0",
-    "marked": "https://esm.sh/marked@^17.0.1",
-    "vite": "https://esm.sh/vite@^7.3.0",
-    "@vitejs/plugin-react": "https://esm.sh/@vitejs/plugin-react@^5.1.2"
+    "vite": "https://esm.sh/vite@^7.3.0"
   }
 }
 </script>
 </head>
 <body>
     <div id="root"></div>
-    <script type="module" src="index.tsx"></script>
+    <script type="module" src="./index.tsx"></script>
 </body>
 </html>

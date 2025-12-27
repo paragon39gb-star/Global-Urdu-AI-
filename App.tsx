@@ -32,16 +32,31 @@ const App: React.FC = () => {
     voiceSpeed: 1.0
   });
 
-  // Safe Load initial settings and data
+  // Safe localStorage helper
+  const safeGet = (key: string) => {
+    try { return localStorage.getItem(key); } catch (e) { return null; }
+  };
+
+  // Safe localStorage setter
+  const safeSet = (key: string, value: string) => {
+    try { localStorage.setItem(key, value); } catch (e) {}
+  };
+
+  // Fail-safe initialization timer
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsAppReady(true);
+    }, 4000);
+    return () => clearTimeout(timer);
+  }, []);
+
   useEffect(() => {
     const initApp = async () => {
       try {
-        // 1. Load Custom Instructions
-        const savedInstructions = localStorage.getItem('chat_grc_custom_instructions');
+        const savedInstructions = safeGet('chat_grc_custom_instructions');
         if (savedInstructions) setCustomInstructions(savedInstructions);
 
-        // 2. Load Settings
-        const savedSettings = localStorage.getItem('chat_grc_settings');
+        const savedSettings = safeGet('chat_grc_settings');
         let currentParsedUser = null;
         if (savedSettings) {
           try { 
@@ -54,9 +69,8 @@ const App: React.FC = () => {
           } catch (e) {}
         }
 
-        // 3. Load Sessions
         const storageKey = currentParsedUser ? `chat_grc_sessions_${currentParsedUser.id}` : 'chat_grc_sessions_guest';
-        const savedSessions = localStorage.getItem(storageKey);
+        const savedSessions = safeGet(storageKey);
         if (savedSessions) {
           try {
             const parsed = JSON.parse(savedSessions);
@@ -67,9 +81,8 @@ const App: React.FC = () => {
           } catch (e) {}
         }
       } catch (e) {
-        console.error("Initialization error:", e);
+        console.error("Init Error:", e);
       } finally {
-        // Even if some loads fail, make app ready
         setIsAppReady(true);
       }
     };
@@ -118,9 +131,9 @@ const App: React.FC = () => {
     if (!isAppReady) return;
 
     const storageKey = settings.currentUser ? `chat_grc_sessions_${settings.currentUser.id}` : 'chat_grc_sessions_guest';
-    localStorage.setItem(storageKey, JSON.stringify(sessions));
-    localStorage.setItem('chat_grc_settings', JSON.stringify(settings));
-    localStorage.setItem('chat_grc_custom_instructions', customInstructions);
+    safeSet(storageKey, JSON.stringify(sessions));
+    safeSet('chat_grc_settings', JSON.stringify(settings));
+    safeSet('chat_grc_custom_instructions', customInstructions);
 
     document.body.className = settings.highContrast ? 'high-contrast bg-slate-950 text-white' : 'bg-[#f8fafc] text-slate-900';
     document.documentElement.classList.toggle('dark', settings.highContrast);
@@ -259,21 +272,21 @@ const App: React.FC = () => {
 
   if (!isAppReady) {
     return (
-      <div className="fixed inset-0 bg-[#0c4a6e] flex flex-col items-center justify-center z-[9999]">
+      <div className="fixed inset-0 bg-[#0c4a6e] flex flex-col items-center justify-center z-[9999] p-6 text-center">
         <div className="relative mb-8">
           <div className="w-24 h-24 bg-white/10 rounded-3xl flex items-center justify-center border border-white/20 shadow-2xl animate-pulse">
             <Sparkles size={48} className="text-sky-300" />
           </div>
           <div className="absolute -top-1 -right-1 w-6 h-6 bg-emerald-500 rounded-full border-4 border-[#0c4a6e] animate-bounce" />
         </div>
-        <div className="text-center space-y-4 px-6">
-          <h1 className="text-3xl font-black text-white urdu-text tracking-tight">اردو اے آئی</h1>
-          <div className="flex items-center gap-3 bg-white/5 px-6 py-3 rounded-2xl border border-white/10 backdrop-blur-md">
-            <Loader2 className="w-5 h-5 text-sky-400 animate-spin" />
-            <p className="text-sky-100 urdu-text font-bold">تحقیق کا آغاز ہو رہا ہے...</p>
-          </div>
-          <p className="text-sky-300/40 text-[10px] uppercase font-black tracking-widest">Global Research Centre by Qari Khalid Mahmood</p>
+        <h1 className="text-3xl font-black text-white urdu-text mb-4">اردو اے آئی</h1>
+        <div className="flex items-center gap-3 bg-white/5 px-6 py-3 rounded-2xl border border-white/10 backdrop-blur-md">
+          <Loader2 className="w-5 h-5 text-sky-400 animate-spin" />
+          <p className="text-sky-100 urdu-text font-bold">تحقیق کا آغاز ہو رہا ہے...</p>
         </div>
+        <p className="mt-8 text-sky-300/40 text-[10px] uppercase font-black tracking-widest leading-loose">
+          Global Research Centre by Qari Khalid Mahmood Gold Medalist
+        </p>
       </div>
     );
   }

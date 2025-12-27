@@ -1,29 +1,27 @@
 
-const CACHE_NAME = 'urdu-ai-v10';
-const ASSETS_TO_CACHE = [
+const CACHE_NAME = 'urdu-ai-cache-v12';
+const PRE_CACHE = [
   './',
   './index.html',
-  'https://img.icons8.com/fluency/96/sparkling-light.png',
-  'https://fonts.googleapis.com/css2?family=Noto+Naskh+Arabic:wght@400;700&family=Noto+Sans+Arabic:wght@400;700&family=Inter:wght@400;600&display=swap'
+  './manifest.json',
+  'https://cdn.tailwindcss.com?plugins=typography'
 ];
 
 self.addEventListener('install', (event) => {
-  self.skipWaiting();
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(ASSETS_TO_CACHE);
+      return cache.addAll(PRE_CACHE).catch(() => console.log('Pre-cache failed'));
     })
   );
+  self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches.keys().then((cacheNames) => {
+    caches.keys().then((keys) => {
       return Promise.all(
-        cacheNames.map((cacheName) => {
-          if (cacheName !== CACHE_NAME) {
-            return caches.delete(cacheName);
-          }
+        keys.map((key) => {
+          if (key !== CACHE_NAME) return caches.delete(key);
         })
       );
     })
@@ -32,27 +30,8 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
-  const url = event.request.url;
-
-  // Bypass cache for Gemini API to ensure fresh research results
-  if (url.includes('generativelanguage.googleapis.com')) {
-    return;
-  }
-
+  // Always try network first, fallback to cache
   event.respondWith(
-    fetch(event.request)
-      .then((response) => {
-        // Cache external fonts and icons on the fly
-        if (url.includes('fonts.gstatic.com') || url.includes('icons8.com')) {
-          const responseClone = response.clone();
-          caches.open(CACHE_NAME).then((cache) => {
-            cache.put(event.request, responseClone);
-          });
-        }
-        return response;
-      })
-      .catch(() => {
-        return caches.match(event.request);
-      })
+    fetch(event.request).catch(() => caches.match(event.request))
   );
 });
