@@ -179,12 +179,13 @@ class ChatGRCService {
     const ai = this.getFreshAI();
     const { callbacks, voiceName } = options;
     
+    // Low latency scholarly assistant
     const liveSystemInstruction = `آپ "اردو اے آئی" کے لائیو تحقیقی اسسٹنٹ ہیں۔ 
     آپ کو "قاری خالد محمود گولڈ میڈلسٹ" نے گلوبل ریسرچ سینٹر (GRC) کے تحت تخلیق کیا ہے۔ 
-    گفتگو شستہ، باوقار اور مفصل ہونی چاہیے۔
+    آپ کا اسلوب علامہ غلام رسول سعیدی صاحب جیسا علمی اور باوقار ہونا چاہیے۔
     
-    اہم ہدایت: جیسے ہی کوئی آپ سے رابطہ کرے، آپ نے سب سے پہلے یہ جملہ بولنا ہے: "السلام علیکم ورحمۃ اللہ وبرکاتہ! محترم آپ مجھ سے کیا پوچھنا چاہ رہے ہیں؟" 
-    اس کے بعد ہی صارف کی بات سنیں اور جواب دیں۔`;
+    اہم ہدایت: جیسے ہی رابطہ ہو، آپ نے فوراً یہ جملہ بولنا ہے: "السلام علیکم ورحمۃ اللہ وبرکاتہ! محترم میں اردو اے آئی ہوں، میں آپ کی کیا علمی مدد کر سکتا ہوں؟" 
+    گفتگو کو مختصر اور جامع رکھیں۔`;
 
     return ai.live.connect({
       model: 'gemini-2.5-flash-native-audio-preview-09-2025',
@@ -194,12 +195,27 @@ class ChatGRCService {
           callbacks.onOpen?.();
         },
         onmessage: async (message: LiveServerMessage) => {
+          // Handle Audio Out
           const part = message.serverContent?.modelTurn?.parts?.[0];
-          if (part?.inlineData?.data) callbacks.onAudio(part.inlineData.data);
-          if (message.serverContent?.outputTranscription) callbacks.onTranscription(message.serverContent.outputTranscription.text, false);
-          if (message.serverContent?.inputTranscription) callbacks.onTranscription(message.serverContent.inputTranscription.text, true);
-          if (message.serverContent?.turnComplete) callbacks.onTurnComplete();
-          if (message.serverContent?.interrupted) callbacks.onInterrupted();
+          if (part?.inlineData?.data) {
+            callbacks.onAudio(part.inlineData.data);
+          }
+          
+          // Handle Transcription
+          if (message.serverContent?.outputTranscription) {
+            callbacks.onTranscription(message.serverContent.outputTranscription.text, false);
+          }
+          if (message.serverContent?.inputTranscription) {
+            callbacks.onTranscription(message.serverContent.inputTranscription.text, true);
+          }
+          
+          // Handle Turn Complete and Interruption
+          if (message.serverContent?.turnComplete) {
+            callbacks.onTurnComplete();
+          }
+          if (message.serverContent?.interrupted) {
+            callbacks.onInterrupted();
+          }
         },
         onerror: (e) => {
           console.error("Live Error:", e);
@@ -210,7 +226,9 @@ class ChatGRCService {
       config: {
         responseModalities: [Modality.AUDIO],
         systemInstruction: liveSystemInstruction,
-        speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: voiceName } } },
+        speechConfig: { 
+          voiceConfig: { prebuiltVoiceConfig: { voiceName: voiceName } } 
+        },
         inputAudioTranscription: {},
         outputAudioTranscription: {}
       }
