@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Sidebar } from './components/Sidebar';
 import { ChatArea } from './components/ChatArea';
@@ -20,7 +19,8 @@ const App: React.FC = () => {
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [isImageMode, setIsImageMode] = useState(false);
   
-  const [selectedModel, setSelectedModel] = useState('gemini-3-pro-preview');
+  // Defaulting to gemini-3-flash-preview for better reliability and faster responses
+  const [selectedModel, setSelectedModel] = useState('gemini-3-flash-preview');
   const [customInstructions, setCustomInstructions] = useState('');
   const [settings, setSettings] = useState<UserSettings>({
     fontSize: 18,
@@ -42,11 +42,11 @@ const App: React.FC = () => {
     try { localStorage.setItem(key, value); } catch (e) {}
   };
 
-  // Fail-safe initialization timer
+  // Fail-safe initialization timer - Reduced to 2s for snappier start
   useEffect(() => {
     const timer = setTimeout(() => {
       setIsAppReady(true);
-    }, 4000);
+    }, 2000);
     return () => clearTimeout(timer);
   }, []);
 
@@ -229,8 +229,10 @@ const App: React.FC = () => {
       ));
       
     } catch (error: any) {
-      let errorMessage = "معذرت! جواب موصول کرنے میں دشواری پیش آئی۔";
-      if (error.message?.includes("API key not valid")) errorMessage = "API Key درست نہیں۔";
+      let errorMessage = "معذرت! جواب موصول کرنے میں دشواری پیش آئی۔ براہ کرم اپنا انٹرنیٹ کنکشن چیک کریں یا دوبارہ کوشش کریں۔";
+      if (error.message?.includes("API key not valid")) errorMessage = "API Key درست نہیں ہے یا سیٹ نہیں کی گئی ہے۔";
+      if (error.message?.includes("User location is not supported")) errorMessage = "معذرت، یہ سہولت آپ کے ملک میں دستیاب نہیں ہے۔";
+      
       setSessions(prev => prev.map(s => 
         s.id === currentSessionId ? { ...s, messages: s.messages.map(m => m.id === assistantMessageId ? { ...m, content: errorMessage } : m) } : s
       ));
