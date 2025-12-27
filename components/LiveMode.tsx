@@ -74,7 +74,7 @@ export const LiveMode: React.FC<LiveModeProps> = ({ onClose, settings }) => {
     const audioCtx = new AudioContextClass();
     const source = audioCtx.createMediaStreamSource(stream);
     const analyser = audioCtx.createAnalyser();
-    analyser.fftSize = 64;
+    analyser.fftSize = 256;
     source.connect(analyser);
 
     const bufferLength = analyser.frequencyBinCount;
@@ -92,18 +92,31 @@ export const LiveMode: React.FC<LiveModeProps> = ({ onClose, settings }) => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       const centerX = canvas.width / 2;
       const centerY = canvas.height / 2;
-      const radius = 50;
+      
+      // Dynamic Glowing Rings
+      const avg = dataArray.reduce((a, b) => a + b, 0) / bufferLength;
+      const baseRadius = 65;
+      const dynamicRadius = baseRadius + (avg / 255) * 40;
 
+      // Pulse background
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, dynamicRadius + 10, 0, Math.PI * 2);
+      ctx.fillStyle = isUserSpeaking ? 'rgba(14, 165, 233, 0.1)' : 'rgba(3, 105, 161, 0.05)';
+      ctx.fill();
+
+      // Bars
       for (let i = 0; i < bufferLength; i++) {
-        const barHeight = (dataArray[i] / 255) * 50;
+        const barHeight = (dataArray[i] / 255) * 60;
         const angle = (i * 2 * Math.PI) / bufferLength;
-        const x1 = centerX + Math.cos(angle) * radius;
-        const y1 = centerY + Math.sin(angle) * radius;
-        const x2 = centerX + Math.cos(angle) * (radius + barHeight);
-        const y2 = centerY + Math.sin(angle) * (radius + barHeight);
+        const x1 = centerX + Math.cos(angle) * baseRadius;
+        const y1 = centerY + Math.sin(angle) * baseRadius;
+        const x2 = centerX + Math.cos(angle) * (baseRadius + barHeight);
+        const y2 = centerY + Math.sin(angle) * (baseRadius + barHeight);
 
-        ctx.strokeStyle = isUserSpeaking ? `rgba(14, 165, 233, ${0.4 + (dataArray[i] / 255)})` : `rgba(14, 165, 233, 0.3)`;
-        ctx.lineWidth = 4;
+        ctx.strokeStyle = isUserSpeaking 
+          ? `hsla(199, 89%, 48%, ${0.5 + (dataArray[i] / 255)})` 
+          : `hsla(199, 89%, 30%, 0.3)`;
+        ctx.lineWidth = 3;
         ctx.lineCap = 'round';
         ctx.beginPath();
         ctx.moveTo(x1, y1);
@@ -137,6 +150,15 @@ export const LiveMode: React.FC<LiveModeProps> = ({ onClose, settings }) => {
           onOpen: () => {
             setIsConnecting(false);
             setIsActive(true);
+            
+            const silentPcm = new Int16Array(1600);
+            const base64Silent = encode(new Uint8Array(silentPcm.buffer));
+            
+            sessionPromiseRef.current?.then(session => {
+              session.sendRealtimeInput({ 
+                media: { data: base64Silent, mimeType: 'audio/pcm;rate=16000' } 
+              });
+            });
           },
           onAudio: async (base64) => {
             if (!audioContextRef.current || audioContextRef.current.state === 'closed') return;
@@ -200,7 +222,6 @@ export const LiveMode: React.FC<LiveModeProps> = ({ onClose, settings }) => {
         }
         const base64Data = encode(new Uint8Array(int16.buffer));
         
-        // Critical: Only send if session is resolved
         sessionPromiseRef.current?.then(session => {
           session.sendRealtimeInput({ 
             media: { data: base64Data, mimeType: 'audio/pcm;rate=16000' } 
@@ -224,7 +245,7 @@ export const LiveMode: React.FC<LiveModeProps> = ({ onClose, settings }) => {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/95 backdrop-blur-3xl p-4">
-      <div className="w-full max-w-xl bg-white rounded-[2.5rem] border border-slate-200 flex flex-col relative overflow-hidden shadow-2xl animate-in zoom-in-95 duration-300 h-[80vh] md:h-[70vh]">
+      <div className="w-full max-w-xl bg-white rounded-[2.5rem] border border-slate-200 flex flex-col relative overflow-hidden shadow-2xl animate-in zoom-in-95 duration-300 h-[85vh] md:h-[75vh]">
         
         <div className="p-6 flex items-center justify-between border-b border-slate-100 bg-slate-50/50 shrink-0">
           <div className="flex items-center gap-3">
@@ -244,28 +265,30 @@ export const LiveMode: React.FC<LiveModeProps> = ({ onClose, settings }) => {
           </button>
         </div>
 
-        <div className="p-10 flex flex-col items-center justify-center gap-8 shrink-0 bg-gradient-to-b from-slate-50 to-transparent">
+        <div className="p-8 flex flex-col items-center justify-center gap-6 shrink-0 bg-gradient-to-b from-slate-50 to-transparent">
           {isConnecting && !error ? (
-            <div className="flex flex-col items-center gap-4">
+            <div className="flex flex-col items-center gap-4 py-8">
               <Loader2 className="w-12 h-12 text-[#0369a1] animate-spin" />
               <p className="urdu-text font-black text-[#0c4a6e]">رابطہ قائم کیا جا رہا ہے...</p>
             </div>
           ) : (
-            <div className="relative w-40 h-40 flex items-center justify-center">
-              <canvas ref={canvasRef} width={250} height={250} className="absolute inset-0 w-full h-full" />
-              <div className={`w-24 h-24 rounded-full bg-gradient-to-tr from-[#0c4a6e] to-[#0369a1] flex items-center justify-center z-10 border-4 border-white shadow-2xl transition-transform duration-500 ${isUserSpeaking ? 'scale-110' : 'scale-100'}`}>
-                <Mic size={32} className="text-white" />
+            <div className="relative w-48 h-48 flex items-center justify-center">
+              <canvas ref={canvasRef} width={300} height={300} className="absolute inset-0 w-full h-full" />
+              <div className={`w-28 h-28 rounded-full bg-gradient-to-tr from-[#0c4a6e] to-[#0369a1] flex items-center justify-center z-10 border-4 border-white shadow-2xl transition-transform duration-500 ${isUserSpeaking ? 'scale-110 shadow-sky-500/50' : 'scale-100'}`}>
+                <Mic size={36} className="text-white" />
               </div>
             </div>
           )}
 
-          <div className="w-full min-h-[60px] flex items-center justify-center text-center">
+          <div className="w-full min-h-[70px] flex items-center justify-center text-center px-4">
             {error ? (
               <p className="text-red-500 urdu-text font-bold text-lg">{error}</p>
             ) : !isConnecting && (
-              <p className="urdu-text text-[#0c4a6e] font-black text-xl md:text-2xl drop-shadow-sm leading-relaxed" dir="rtl">
-                {transcription || (isUserSpeaking ? "سن رہا ہوں..." : "کچھ پوچھیں، میں حاضر ہوں...")}
-              </p>
+              <div className="animate-in fade-in slide-in-from-bottom-2 duration-500">
+                 <p className="urdu-text text-[#0c4a6e] font-black text-xl md:text-2xl drop-shadow-sm leading-relaxed" dir="rtl">
+                  {transcription || (isUserSpeaking ? "میں سن رہا ہوں..." : "کچھ پوچھیں، میں حاضر ہوں...")}
+                </p>
+              </div>
             )}
           </div>
         </div>

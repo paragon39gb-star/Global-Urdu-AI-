@@ -7,7 +7,6 @@ class ChatGRCService {
   private currentModel: string | null = null;
 
   private getFreshAI() {
-    // Ensuring the API key is always fresh from the environment or dialog
     return new GoogleGenAI({ apiKey: process.env.API_KEY });
   }
 
@@ -22,6 +21,31 @@ class ChatGRCService {
     
     const dateContext = `موجودہ عیسوی تاریخ: ${dayName}، ${gregDate}`;
     return `${SYSTEM_PROMPT}\n\n[CONTEXT_UPDATE]\n${dateContext}\n[/CONTEXT_UPDATE]`;
+  }
+
+  async generateImage(prompt: string) {
+    const ai = this.getFreshAI();
+    try {
+      const response = await ai.models.generateContent({
+        model: 'gemini-2.5-flash-image',
+        contents: {
+          parts: [{ text: `Generate a high-quality, professional image based on this Urdu description: ${prompt}. Style: Cinematic and detailed.` }]
+        },
+        config: {
+          imageConfig: { aspectRatio: "1:1" }
+        }
+      });
+
+      for (const part of response.candidates[0].content.parts) {
+        if (part.inlineData) {
+          return `data:image/png;base64,${part.inlineData.data}`;
+        }
+      }
+      return null;
+    } catch (e) {
+      console.error("Image Gen Error:", e);
+      throw e;
+    }
   }
 
   async generateTitle(firstMessage: string) {
@@ -50,7 +74,6 @@ class ChatGRCService {
     const ai = this.getFreshAI();
     const systemPrompt = this.getUpdatedSystemPrompt();
     
-    // Always create a fresh chat instance for streaming on Vercel to avoid stale closures
     const geminiHistory = history.map(msg => ({
       role: msg.role === 'user' ? 'user' : 'model',
       parts: [{ text: msg.content }]
@@ -158,7 +181,10 @@ class ChatGRCService {
     
     const liveSystemInstruction = `آپ "اردو اے آئی" کے لائیو تحقیقی اسسٹنٹ ہیں۔ 
     آپ کو "قاری خالد محمود گولڈ میڈلسٹ" نے گلوبل ریسرچ سینٹر (GRC) کے تحت تخلیق کیا ہے۔ 
-    گفتگو شستہ، باوقار اور مفصل ہونی چاہیے۔`;
+    گفتگو شستہ، باوقار اور مفصل ہونی چاہیے۔
+    
+    اہم ہدایت: جیسے ہی کوئی آپ سے رابطہ کرے، آپ نے سب سے پہلے یہ جملہ بولنا ہے: "السلام علیکم ورحمۃ اللہ وبرکاتہ! محترم آپ مجھ سے کیا پوچھنا چاہ رہے ہیں؟" 
+    اس کے بعد ہی صارف کی بات سنیں اور جواب دیں۔`;
 
     return ai.live.connect({
       model: 'gemini-2.5-flash-native-audio-preview-09-2025',

@@ -1,8 +1,10 @@
+
 import React, { useState, useRef, useEffect } from 'react';
-import { Sparkles, ArrowUp, Mic, Paperclip, Menu, Newspaper, Loader2, RefreshCcw, Calendar, Radio, AlertCircle, Cpu, Share2, MessageCircle } from 'lucide-react';
+import { Sparkles, ArrowUp, Mic, Paperclip, Menu, Newspaper, Loader2, RefreshCcw, Calendar, Radio, AlertCircle, Cpu, Share2, MessageCircle, Image as ImageIcon, Wand2 } from 'lucide-react';
 import { MessageBubble } from './MessageBubble';
-import { ChatSession, Attachment, UserSettings } from '../types';
+import { ChatSession, Attachment, UserSettings, Message } from '../types';
 import { MOCK_CONTACTS } from '../constants';
+import { chatGRC } from '../services/geminiService';
 
 interface ChatAreaProps {
   session: ChatSession | null;
@@ -29,12 +31,15 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
   isLoading,
   settings,
   onToggleSidebar,
-  onRefreshContext
+  onRefreshContext,
+  isImageMode,
+  setIsImageMode
 }) => {
   const [input, setInput] = useState('');
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [combinedDate, setCombinedDate] = useState('');
+  const [isGeneratingImage, setIsGeneratingImage] = useState(false);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -44,36 +49,69 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [session?.messages]);
+  }, [session?.messages, isGeneratingImage]);
 
   useEffect(() => {
     const updateDate = () => {
       const now = new Date();
       let dayName = new Intl.DateTimeFormat('ur-PK', { weekday: 'long' }).format(now);
       if (dayName === 'جمعہ') dayName = 'جمعۃ المبارک';
-      
-      const gregDate = new Intl.DateTimeFormat('ur-PK', { 
-        day: 'numeric', 
-        month: 'long', 
-        year: 'numeric' 
-      }).format(now);
-      
+      const gregDate = new Intl.DateTimeFormat('ur-PK', { day: 'numeric', month: 'long', year: 'numeric' }).format(now);
       setCombinedDate(`${dayName}، ${gregDate}`);
     };
-    
     updateDate();
     const interval = setInterval(updateDate, 60000);
     return () => clearInterval(interval);
   }, []);
 
-  const handleSubmit = (e?: React.FormEvent) => {
+  const handleSubmit = async (e?: React.FormEvent) => {
     e?.preventDefault();
     setError(null);
-    if ((input.trim() || attachments.length > 0) && !isLoading) {
-      onSendMessage(input, attachments);
-      setInput('');
-      setAttachments([]);
-      if (textareaRef.current) textareaRef.current.style.height = 'auto';
+    if (!input.trim() && attachments.length === 0) return;
+    if (isLoading || isGeneratingImage) return;
+
+    if (isImageMode) {
+      await handleImageGeneration(input);
+      return;
+    }
+
+    onSendMessage(input, attachments);
+    setInput('');
+    setAttachments([]);
+    if (textareaRef.current) textareaRef.current.style.height = 'auto';
+  };
+
+  const handleImageGeneration = async (prompt: string) => {
+    setIsGeneratingImage(true);
+    setInput('');
+    setIsImageMode(false); // Reset mode after starting
+    
+    // Add temporary message to history to show intent
+    const userMsg: Message = {
+      id: Date.now().toString(),
+      role: 'user',
+      content: `تصویر بنائیں: ${prompt}`,
+      timestamp: Date.now()
+    };
+    
+    // We modify session via parent props usually, but here we just wait for result
+    // To keep it simple, we simulate a system message being added after generation
+    try {
+      const imageData = await chatGRC.generateImage(prompt);
+      if (imageData) {
+        // Create an assistant message with the image as an attachment
+        const imageAttachment: Attachment = {
+          data: imageData,
+          mimeType: 'image/png',
+          name: 'generated_image.png',
+          previewUrl: imageData
+        };
+        onSendMessage(`آپ کی فرمائش پر تصویر تیار ہے: "${prompt}"`, [imageAttachment]);
+      }
+    } catch (err) {
+      setError("تصویر بنانے میں دشواری پیش آئی۔ براہ کرم دوبارہ کوشش کریں۔");
+    } finally {
+      setIsGeneratingImage(false);
     }
   };
 
@@ -113,34 +151,28 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
           <button onClick={onToggleSidebar} className="p-2 hover:bg-white/20 rounded-xl text-white transition-all active:scale-90 shrink-0">
             <Menu className="w-6 h-6" />
           </button>
-          {/* Urdu AI text removed from header */}
         </div>
 
         <div className="flex items-center gap-1.5 md:gap-2.5 overflow-x-auto no-scrollbar py-1">
-           {/* لائیو بٹن */}
            <button onClick={onStartVoice} className="flex items-center gap-2 px-3 py-2 bg-emerald-500/20 hover:bg-emerald-500/30 rounded-xl border border-emerald-500/20 transition-all active:scale-95 group shadow-sm shrink-0">
               <Radio className="w-5 h-5 text-emerald-400 animate-pulse" />
               <span className="urdu-text text-[10px] md:text-xs font-black text-white">لائیو</span>
            </button>
            
-           {/* خبریں بٹن */}
            <button onClick={onFetchNews} className="flex items-center gap-2 px-3 py-2 bg-white/10 hover:bg-white/20 rounded-xl border border-white/10 transition-all active:scale-95 group shadow-sm shrink-0">
               <Newspaper className="w-5 h-5 text-white" />
               <span className="urdu-text text-[10px] md:text-xs font-black text-white">خبریں</span>
            </button>
 
-           {/* AI بٹن */}
            <button onClick={onFetchAIUpdates} className="flex items-center gap-2 px-3 py-2 bg-sky-500/20 hover:bg-sky-500/30 rounded-xl border border-sky-500/10 transition-all active:scale-95 group shadow-sm shrink-0">
               <Cpu className="w-5 h-5 text-sky-400" />
               <span className="urdu-text text-[10px] md:text-xs font-black text-white">AI</span>
            </button>
 
-           {/* شیئر ایپ بٹن */}
            <button onClick={handleShareApp} className="p-2 text-white/70 hover:text-white hover:bg-white/10 rounded-xl transition-all border border-transparent hover:border-white/10 shrink-0" title="شیئر ایپ">
               <Share2 className="w-5.5 h-5.5" />
            </button>
 
-           {/* ری فریش بٹن */}
            <button onClick={onRefreshContext} className="p-2 text-white/70 hover:text-white hover:bg-white/10 rounded-xl transition-all border border-transparent hover:border-white/10 shrink-0" title="ری فریش">
               <RefreshCcw className="w-5.5 h-5.5" />
            </button>
@@ -165,7 +197,7 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
                   </div>
                   <div className="max-w-md mx-auto p-6 md:p-8 rounded-3xl border-x-4 border-sky-500 shadow-2xl bg-white/95 backdrop-blur-sm">
                     <p className="urdu-text text-base md:text-lg font-bold text-sky-900 text-center leading-relaxed" dir="rtl">
-                      اردو اے آئی ایک جدید تحقیقی انجن ہے۔ اپنا تحقیقی سوال نیچے لکھیں یا لائیو بٹن دبا کر گفتگو کریں۔
+                      اردو اے آئی ایک جدید تحقیقی انجن ہے۔ اپنا تحقیقی سوال نیچے لکھیں، تصویر بنوائیں یا لائیو گفتگو کریں۔
                     </p>
                   </div>
                 </div>
@@ -177,7 +209,7 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
                 <MessageBubble key={msg.id} message={msg} settings={settings} onSuggestionClick={(s) => onSendMessage(s, [])} />
               ))}
               
-              {!isLoading && session.messages.length > 0 && (
+              {!isLoading && !isGeneratingImage && session.messages.length > 0 && (
                 <div className="flex justify-center py-6 animate-in fade-in zoom-in duration-500">
                   <button 
                     onClick={handleShareChatWhatsApp}
@@ -189,11 +221,13 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
                 </div>
               )}
 
-              {isLoading && (
+              {(isLoading || isGeneratingImage) && (
                 <div className="flex justify-start px-2">
                   <div className="px-4 py-2 rounded-2xl bg-white shadow-xl flex items-center gap-3 border border-sky-100 animate-pulse">
                     <Loader2 className="w-4 h-4 text-sky-500 animate-spin" />
-                    <span className="urdu-text text-sm font-black text-sky-600">تحقیق جاری ہے...</span>
+                    <span className="urdu-text text-sm font-black text-sky-600">
+                      {isGeneratingImage ? "تصویر بنائی جا رہی ہے..." : "تحقیق جاری ہے..."}
+                    </span>
                   </div>
                 </div>
               )}
@@ -214,7 +248,7 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
       <footer className="w-full shrink-0 pt-2 pb-6 px-4 bg-white/60 backdrop-blur-md border-t border-slate-100">
         <div className="max-w-chat mx-auto w-full">
           <form onSubmit={handleSubmit} className="relative w-full">
-            <div className="relative flex items-end gap-2 w-full border border-slate-200 rounded-[2rem] p-2 bg-white shadow-2xl focus-within:ring-2 focus-within:ring-sky-500/20 focus-within:border-sky-400 transition-all duration-300">
+            <div className={`relative flex items-end gap-2 w-full border rounded-[2rem] p-2 bg-white shadow-2xl transition-all duration-300 ${isImageMode ? 'ring-2 ring-purple-500 border-purple-400' : 'border-slate-200 focus-within:ring-2 focus-within:ring-sky-500/20 focus-within:border-sky-400'}`}>
               <button type="button" onClick={() => fileInputRef.current?.click()} className="p-3 text-slate-400 hover:text-sky-600 transition-colors"><Paperclip className="w-5 h-5" /></button>
               <textarea
                 ref={textareaRef}
@@ -222,19 +256,28 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={handleKeyDown}
-                placeholder="تحقیق شروع کریں..."
+                placeholder={isImageMode ? "تصویر کی تفصیل لکھیں..." : "تحقیق شروع کریں..."}
                 className="flex-1 bg-transparent border-none focus:ring-0 px-2 py-3 resize-none urdu-text text-right font-bold text-sky-900 min-h-[48px] max-h-32"
                 style={{ fontSize: '16px' }}
                 dir="auto"
               />
               <div className="flex items-center gap-2 pr-1">
-                <button type="button" onClick={onStartVoice} className="p-3 text-slate-400 hover:text-emerald-600 transition-colors"><Mic className="w-5 h-5" /></button>
-                <button type="submit" disabled={!input.trim() || isLoading} className="w-11 h-11 rounded-full bg-sky-600 text-white flex items-center justify-center disabled:opacity-50 shadow-lg shadow-sky-600/20 hover:bg-sky-700 active:scale-95 transition-all"><ArrowUp size={24} /></button>
+                <button 
+                  type="button" 
+                  onClick={() => setIsImageMode(!isImageMode)} 
+                  className={`p-3 transition-colors rounded-full ${isImageMode ? 'bg-purple-100 text-purple-600' : 'text-slate-400 hover:text-purple-600'}`}
+                  title="تصویر بنوائیں"
+                >
+                  <Wand2 className="w-5 h-5" />
+                </button>
+                <button type="button" onClick={onStartVoice} className="p-3 text-slate-400 hover:text-emerald-600 transition-colors hidden md:block"><Mic className="w-5 h-5" /></button>
+                <button type="submit" disabled={!input.trim() || isLoading || isGeneratingImage} className={`w-11 h-11 rounded-full flex items-center justify-center disabled:opacity-50 shadow-lg transition-all active:scale-95 ${isImageMode ? 'bg-purple-600 text-white shadow-purple-600/20' : 'bg-sky-600 text-white shadow-sky-600/20 hover:bg-sky-700'}`}>
+                  <ArrowUp size={24} />
+                </button>
               </div>
             </div>
             <input type="file" multiple ref={fileInputRef} className="hidden" />
           </form>
-          {/* Urdu AI text added to footer here */}
           <div className="flex flex-col items-center mt-3 gap-0.5">
             <span className="font-black text-xl urdu-text text-sky-700 drop-shadow-sm">Urdu AI</span>
             <p className="text-[10px] text-center text-slate-400 font-bold uppercase tracking-widest urdu-text">گلوبل ریسرچ سینٹر - قاری خالد محمود</p>

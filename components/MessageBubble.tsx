@@ -1,6 +1,6 @@
 
 import React, { useMemo, useState, useRef, useEffect } from 'react';
-import { Sparkles, User, Copy, Check, Share2, Volume2, Pause, Loader2, Award, ExternalLink, MessageCircle, ChevronRight } from 'lucide-react';
+import { Sparkles, User, Copy, Check, Share2, Volume2, Pause, Loader2, Award, ExternalLink, MessageCircle, ChevronRight, Download, Eye } from 'lucide-react';
 import { Message, UserSettings, Contact } from '../types';
 import { marked } from 'marked';
 import { chatGRC } from '../services/geminiService';
@@ -14,7 +14,6 @@ interface MessageBubbleProps {
 
 type AudioState = 'idle' | 'loading' | 'playing' | 'paused';
 
-// Global shared audio context to prevent "Too many AudioContexts" errors
 let sharedAudioContext: AudioContext | null = null;
 
 export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, settings, contact, onSuggestionClick }) => {
@@ -29,10 +28,16 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, settings,
   
   const sources = message.sources || [];
   const suggestions = message.suggestions || [];
+  const attachments = message.attachments || [];
   const isUrdu = /[\u0600-\u06FF]/.test(message.content);
 
   const htmlContent = useMemo(() => {
-    return marked.parse(message.content || '');
+    try {
+      const parsed = marked.parse(message.content || '');
+      return typeof parsed === 'string' ? parsed : (parsed as any).toString();
+    } catch (e) {
+      return message.content || '';
+    }
   }, [message.content]);
 
   useEffect(() => {
@@ -73,14 +78,19 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, settings,
     }
   };
 
+  const handleDownloadImage = (data: string, name: string) => {
+    const link = document.createElement('a');
+    link.href = data;
+    link.download = name;
+    link.click();
+  };
+
   const getAudioContext = () => {
     if (!sharedAudioContext) {
       const AudioContextClass = (window as any).AudioContext || (window as any).webkitAudioContext;
       sharedAudioContext = new AudioContextClass({ sampleRate: 24000 });
     }
-    if (sharedAudioContext?.state === 'suspended') {
-      sharedAudioContext.resume();
-    }
+    if (sharedAudioContext?.state === 'suspended') sharedAudioContext.resume();
     return sharedAudioContext;
   };
 
@@ -121,7 +131,6 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, settings,
         audioBufferRef.current = buffer;
         playFromOffset(0);
       } catch (err) {
-        console.error("Audio Playback Error:", err);
         setAudioState('idle');
       }
     } else {
@@ -193,6 +202,25 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, settings,
           }`}
           dir={isUrdu ? 'rtl' : 'ltr'}
         >
+          {/* Support for Image Attachments */}
+          {attachments.map((att, idx) => (
+            att.mimeType.startsWith('image/') && (
+              <div key={idx} className="p-2">
+                <div className="relative group overflow-hidden rounded-2xl border border-black/5 bg-slate-50">
+                   <img src={att.data} alt={att.name} className="w-full h-auto max-h-[500px] object-contain transition-transform duration-500 group-hover:scale-[1.02]" />
+                   <div className="absolute top-3 right-3 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button 
+                        onClick={() => handleDownloadImage(att.data, att.name)}
+                        className="p-2.5 bg-black/60 backdrop-blur-md text-white rounded-xl hover:bg-black/80 transition-all active:scale-90"
+                      >
+                        <Download size={18} />
+                      </button>
+                   </div>
+                </div>
+              </div>
+            )
+          ))}
+
           <div 
             className={`prose prose-sm md:prose-base max-w-none px-5 md:px-7 py-5 md:py-6 ${isAssistant ? (settings.highContrast ? 'prose-invert' : 'text-slate-900 prose-headings:text-[#0c4a6e]') : 'text-white prose-headings:text-white'}`}
             style={{ 

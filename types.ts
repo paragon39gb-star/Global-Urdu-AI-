@@ -56,15 +56,17 @@ export interface UserSettings {
   voiceSpeed: number;
 }
 
-export interface AIStudio {
-  hasSelectedApiKey: () => Promise<boolean>;
-  openSelectKey: () => Promise<void>;
-}
-
+/**
+ * Fix: Restoring '?' to aistudio property to resolve "identical modifiers" conflict 
+ * with the underlying environment's Window declaration.
+ */
 declare global {
+  interface AIStudio {
+    hasSelectedApiKey: () => Promise<boolean>;
+    openSelectKey: () => Promise<void>;
+  }
+
   interface Window {
-    // Fixed: All declarations of 'aistudio' must have identical modifiers. 
-    // Making it optional to match potential existing global declarations in the environment and resolve type mismatch.
     aistudio?: AIStudio;
   }
 }

@@ -16,6 +16,7 @@ const App: React.FC = () => {
   const [showLiveMode, setShowLiveMode] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [isImageMode, setIsImageMode] = useState(false);
   
   const [selectedModel, setSelectedModel] = useState('gemini-3-pro-preview');
   const [customInstructions, setCustomInstructions] = useState('');
@@ -29,14 +30,12 @@ const App: React.FC = () => {
     voiceSpeed: 1.0
   });
 
-  // Background API Key validation (non-blocking)
   useEffect(() => {
     const initKey = async () => {
       try {
         if (window.aistudio) {
           const hasKey = await window.aistudio.hasSelectedApiKey();
           if (!hasKey && !process.env.API_KEY) {
-            // Only trigger if no environment key exists
             console.warn("API Key might be missing.");
           }
         }
@@ -165,11 +164,7 @@ const App: React.FC = () => {
 
     setSessions(prev => prev.map(s => 
       s.id === currentSessionId 
-        ? { 
-            ...s, 
-            messages: [...s.messages, userMessage], 
-            updatedAt: Date.now()
-          }
+        ? { ...s, messages: [...s.messages, userMessage], updatedAt: Date.now() }
         : s
     ));
 
@@ -190,9 +185,7 @@ const App: React.FC = () => {
       let instructions = customInstructions;
       if (currentSession.contactId) {
         const contact = MOCK_CONTACTS.find(c => c.id === currentSession.contactId);
-        if (contact) {
-          instructions = `${contact.persona}\n\n${customInstructions}`;
-        }
+        if (contact) instructions = `${contact.persona}\n\n${customInstructions}`;
       }
 
       const fullResponse = await chatGRC.sendMessageStream(
@@ -239,24 +232,10 @@ const App: React.FC = () => {
       ));
       
     } catch (error: any) {
-      console.error("Chat Error:", error);
       let errorMessage = "معذرت! جواب موصول کرنے میں دشواری پیش آئی۔";
-      
-      if (error.message?.includes("API key not valid") || error.message?.includes("API_KEY")) {
-        errorMessage = "API Key درست نہیں یا غائب ہے۔ براہ کرم ماحول چیک کریں۔";
-      } else if (error.message?.includes("Safety")) {
-        errorMessage = "معذرت، یہ مواد ہماری پالیسی کے مطابق نہیں ہے۔";
-      }
-      
+      if (error.message?.includes("API key not valid")) errorMessage = "API Key درست نہیں۔";
       setSessions(prev => prev.map(s => 
-        s.id === currentSessionId 
-          ? { 
-              ...s, 
-              messages: s.messages.map(m => 
-                m.id === assistantMessageId ? { ...m, content: errorMessage } : m
-              ) 
-            } 
-          : s
+        s.id === currentSessionId ? { ...s, messages: s.messages.map(m => m.id === assistantMessageId ? { ...m, content: errorMessage } : m) } : s
       ));
     } finally {
       setIsLoading(false);
@@ -265,14 +244,12 @@ const App: React.FC = () => {
 
   const fetchCurrentNews = () => {
     const today = new Date().toLocaleDateString('ur-PK', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-    const prompt = NEWS_PROMPT.replace('[CURRENT_DATE]', today);
-    handleSendMessage(prompt);
+    handleSendMessage(NEWS_PROMPT.replace('[CURRENT_DATE]', today));
   };
 
   const fetchAIUpdates = () => {
     const today = new Date().toLocaleDateString('ur-PK', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-    const prompt = AI_UPDATES_PROMPT.replace('[CURRENT_DATE]', today);
-    handleSendMessage(prompt);
+    handleSendMessage(AI_UPDATES_PROMPT.replace('[CURRENT_DATE]', today));
   };
 
   const deleteSession = (id: string) => {
@@ -285,8 +262,7 @@ const App: React.FC = () => {
   };
 
   const handleWhatsAppFeedback = () => {
-    const message = encodeURIComponent("سلام اردو اے آئی! میں اپنی رائے دینا چاہتا ہوں: ");
-    window.open(`https://wa.me/923099572321?text=${message}`, '_blank');
+    window.open(`https://wa.me/923099572321?text=${encodeURIComponent("سلام اردو اے آئی! میں اپنی رائے دینا چاہتا ہوں: ")}`, '_blank');
   };
 
   const getFontClass = () => {
@@ -322,8 +298,8 @@ const App: React.FC = () => {
         onSendMessage={handleSendMessage}
         onFetchNews={fetchCurrentNews}
         onFetchAIUpdates={fetchAIUpdates}
-        isImageMode={false}
-        setIsImageMode={() => {}}
+        isImageMode={isImageMode}
+        setIsImageMode={setIsImageMode}
         onStartVoice={() => setShowLiveMode(true)}
         isLoading={isLoading}
         selectedModel={selectedModel}
