@@ -28,7 +28,7 @@ export interface Message {
   timestamp: number;
   attachments?: Attachment[];
   sources?: GroundingSource[];
-  suggestions?: string[]; // Added for Perplexity-like follow-ups
+  suggestions?: string[];
 }
 
 export interface ChatSession {
@@ -38,7 +38,7 @@ export interface ChatSession {
   createdAt: number;
   updatedAt: number;
   model: string;
-  contactId?: string; // If this is a DM with a contact
+  contactId?: string;
 }
 
 export interface GroundingSource {
@@ -56,7 +56,6 @@ export interface UserSettings {
   voiceSpeed: number;
 }
 
-// Define the AIStudio interface to match environmental type requirements
 export interface AIStudio {
   hasSelectedApiKey: () => Promise<boolean>;
   openSelectKey: () => Promise<void>;
@@ -64,8 +63,8 @@ export interface AIStudio {
 
 declare global {
   interface Window {
-    // Fix: Subsequent property declarations must have the same type.
-    // Using the named AIStudio interface as required by the environment.
-    aistudio: AIStudio;
+    // Fixed: All declarations of 'aistudio' must have identical modifiers. 
+    // Making it optional to match potential existing global declarations in the environment and resolve type mismatch.
+    aistudio?: AIStudio;
   }
 }
