@@ -1,12 +1,9 @@
-
 import { GoogleGenAI, Chat, Modality, LiveServerMessage, Part, Type } from "@google/genai";
 import { SYSTEM_PROMPT } from "../constants";
 
 class ChatGRCService {
-  private chatInstance: Chat | null = null;
-  private currentModel: string | null = null;
-
   private getFreshAI() {
+    // Ensuring the API key is always pulled from environment
     return new GoogleGenAI({ apiKey: process.env.API_KEY });
   }
 
@@ -84,13 +81,14 @@ class ChatGRCService {
       history: geminiHistory,
       config: {
         systemInstruction: (customInstructions ? `${systemPrompt}\n\nUSER CUSTOM INSTRUCTIONS:\n${customInstructions}` : systemPrompt),
-        temperature: 0.1,
+        temperature: 0.2,
         topP: 0.95,
         tools: [{ googleSearch: {} }]
       }
     });
 
     try {
+      // Create parts for the current message
       const parts: Part[] = [{ text: message }];
       attachments.forEach(att => {
         parts.push({
@@ -101,11 +99,13 @@ class ChatGRCService {
         });
       });
 
-      const responseStream = await chat.sendMessageStream({ message: parts });
+      // Simplified call to sendMessageStream to ensure stability
+      const result = await chat.sendMessageStream({ message: parts.length === 1 ? parts[0].text : parts });
+      
       let fullText = "";
       let allSources: any[] = [];
       
-      for await (const chunk of responseStream) {
+      for await (const chunk of result) {
         const text = chunk.text;
         
         if (chunk.candidates?.[0]?.groundingMetadata?.groundingChunks) {
@@ -179,7 +179,6 @@ class ChatGRCService {
     const ai = this.getFreshAI();
     const { callbacks, voiceName } = options;
     
-    // Low latency scholarly assistant
     const liveSystemInstruction = `آپ "اردو اے آئی" کے لائیو تحقیقی اسسٹنٹ ہیں۔ 
     آپ کو "قاری خالد محمود گولڈ میڈلسٹ" نے گلوبل ریسرچ سینٹر (GRC) کے تحت تخلیق کیا ہے۔ 
     آپ کا اسلوب علامہ غلام رسول سعیدی صاحب جیسا علمی اور باوقار ہونا چاہیے۔
@@ -193,13 +192,11 @@ class ChatGRCService {
           callbacks.onOpen?.();
         },
         onmessage: async (message: LiveServerMessage) => {
-          // Handle Audio Out
           const part = message.serverContent?.modelTurn?.parts?.[0];
           if (part?.inlineData?.data) {
             callbacks.onAudio(part.inlineData.data);
           }
           
-          // Handle Transcription
           if (message.serverContent?.outputTranscription) {
             const text = message.serverContent.outputTranscription.text;
             callbacks.onTranscription(text, false);
@@ -209,7 +206,6 @@ class ChatGRCService {
             callbacks.onTranscription(text, true);
           }
           
-          // Handle Turn Complete and Interruption
           if (message.serverContent?.turnComplete) {
             callbacks.onTurnComplete();
           }
@@ -236,8 +232,7 @@ class ChatGRCService {
   }
 
   resetChat() {
-    this.chatInstance = null;
-    this.currentModel = null;
+    // Local state reset if needed
   }
 }
 

@@ -1,5 +1,6 @@
+
 import React, { useState, useRef, useEffect } from 'react';
-import { Sparkles, ArrowUp, Mic, Paperclip, Menu, Newspaper, Loader2, RefreshCcw, Calendar, Radio, AlertCircle, Cpu, Share2, MessageCircle, Image as ImageIcon, Wand2 } from 'lucide-react';
+import { Sparkles, ArrowUp, Mic, Paperclip, Menu, Newspaper, Loader2, RefreshCcw, Calendar, Radio, AlertCircle, Cpu, Share2, MessageCircle, Image as ImageIcon, Wand2, BookOpen } from 'lucide-react';
 import { MessageBubble } from './MessageBubble';
 import { ChatSession, Attachment, UserSettings, Message } from '../types';
 import { MOCK_CONTACTS } from '../constants';
@@ -132,7 +133,6 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
     window.open(`https://wa.me/?text=${text}`, '_blank');
   };
 
-  // Fixed handleFileChange by explicitly typing the 'file' parameter to resolve 'unknown' type errors.
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files) return;
@@ -190,15 +190,31 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
       <div className="flex-1 overflow-y-auto no-scrollbar scroll-smooth relative">
         <div className="w-full max-w-chat mx-auto px-4 flex flex-col min-h-full relative z-10">
           {!session || session.messages.length === 0 ? (
-            <div className="flex-1 flex flex-col items-center justify-center py-8 animate-bubble">
-              <div className="text-center space-y-4 w-full">
-                <div className="relative inline-flex items-center justify-center w-12 h-12 bg-gradient-to-tr from-[#0ea5e9] to-[#0c4a6e] rounded-xl border border-white shadow-xl mb-4">
-                  <span className="text-white text-xl font-bold">U</span>
+            <div className="flex-1 flex flex-col items-center justify-center py-12 animate-bubble">
+              <div className="text-center space-y-6 w-full max-w-lg">
+                {/* Updated Logo Design */}
+                <div className="relative inline-flex items-center justify-center w-24 h-24 bg-gradient-to-tr from-[#0ea5e9] to-[#0c4a6e] rounded-[2.5rem] border-2 border-white shadow-2xl mb-4 transform hover:rotate-6 transition-transform duration-500">
+                  <Sparkles size={48} className="text-white fill-sky-200/20" />
+                  <div className="absolute -bottom-1 -right-1 w-8 h-8 bg-emerald-500 rounded-2xl border-4 border-[#f8fafc] flex items-center justify-center">
+                    <BookOpen size={14} className="text-white" />
+                  </div>
                 </div>
-                <div className="flex justify-center mb-2">
-                  <div className="px-4 py-1.5 rounded-full bg-white/80 border border-sky-100 shadow-sm flex items-center gap-2">
-                    <Calendar className="w-3.5 h-3.5 text-sky-600" />
-                    <span className="urdu-text text-[11px] font-black text-sky-900">{combinedDate}</span>
+
+                <div className="flex flex-col items-center gap-6">
+                  <div className="px-5 py-2 rounded-full bg-white border border-sky-100 shadow-sm flex items-center gap-2">
+                    <Calendar className="w-4 h-4 text-sky-600" />
+                    <span className="urdu-text text-xs font-black text-sky-900">{combinedDate}</span>
+                  </div>
+
+                  {/* Introductory Text */}
+                  <div className="space-y-4 px-6">
+                    <h2 className="urdu-text text-3xl font-black text-sky-950">السلام علیکم!</h2>
+                    <p className="urdu-text text-lg md:text-xl font-bold text-sky-800 leading-relaxed">
+                      میں <span className="text-[#0369a1] font-black underline decoration-sky-300 underline-offset-4">اردو اے آئی</span> ہوں، گلوبل ریسرچ سینٹر کا مستند علمی معاون۔ میں قرآن، حدیث اور علومِ اسلامیہ میں علامہ غلام رسول سعیدی صاحب کے تحقیقی اسلوب میں آپ کی رہنمائی کر سکتا ہوں۔
+                    </p>
+                    <p className="urdu-text text-sm font-medium text-slate-500">
+                      تحقیق شروع کرنے کے لیے نیچے دیے گئے خانے میں اپنا سوال لکھیں۔
+                    </p>
                   </div>
                 </div>
               </div>
