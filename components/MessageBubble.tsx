@@ -1,6 +1,5 @@
-
 import React, { useMemo, useState, useRef, useEffect } from 'react';
-import { Sparkles, User, Copy, Check, Share2, Volume2, Pause, Loader2, Award, ExternalLink, MessageCircle, ChevronRight, Download, Eye } from 'lucide-react';
+import { Sparkles, User, Copy, Check, Share2, Volume2, Pause, Loader2, Award, ExternalLink, MessageCircle, ChevronRight, Download } from 'lucide-react';
 import { Message, UserSettings, Contact } from '../types';
 import { marked } from 'marked';
 import { chatGRC } from '../services/geminiService';
@@ -186,7 +185,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, settings,
         )}
       </div>
 
-      <div className={`flex flex-col space-y-2.5 max-w-[88%] md:max-w-[82%] ${isAssistant ? 'items-start' : 'items-end'}`}>
+      <div className={`flex flex-col space-y-2.5 max-w-[85%] md:max-w-[80%] ${isAssistant ? 'items-start' : 'items-end'}`}>
         {isAssistant && (
           <div className="flex items-center gap-2 mb-0.5 px-1 opacity-80">
              <span className="text-[10px] md:text-[12px] font-black urdu-text text-[#075985] uppercase tracking-wider">{contact ? contact.name : 'تحقیقی جواب'}</span>
@@ -195,23 +194,22 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, settings,
         )}
         
         <div 
-          className={`relative overflow-hidden rounded-3xl transition-all duration-300 ${isUrdu ? 'urdu-text text-right' : 'text-left'} ${
+          className={`relative w-full overflow-hidden rounded-3xl transition-all duration-300 shadow-xl border ${isUrdu ? 'urdu-text text-right' : 'text-left'} ${
             isAssistant 
-              ? `bg-white ${settings.highContrast ? 'bg-slate-900 border-slate-700' : 'border-slate-100 shadow-xl shadow-slate-200/50'} border rounded-tl-none` 
-              : 'bg-gradient-to-br from-[#0c4a6e] to-[#0369a1] text-white border border-white/10 rounded-tr-none shadow-[#0369a1]/20 shadow-lg font-bold'
+              ? `bg-white ${settings.highContrast ? 'bg-slate-900 border-slate-700' : 'border-slate-100 shadow-slate-200/50'} border rounded-tl-none` 
+              : 'bg-gradient-to-br from-[#0c4a6e] to-[#0369a1] text-white border-white/10 rounded-tr-none shadow-[#0369a1]/20 font-bold'
           }`}
           dir={isUrdu ? 'rtl' : 'ltr'}
         >
-          {/* Support for Image Attachments */}
           {attachments.map((att, idx) => (
             att.mimeType.startsWith('image/') && (
               <div key={idx} className="p-2">
                 <div className="relative group overflow-hidden rounded-2xl border border-black/5 bg-slate-50">
-                   <img src={att.data} alt={att.name} className="w-full h-auto max-h-[500px] object-contain transition-transform duration-500 group-hover:scale-[1.02]" />
-                   <div className="absolute top-3 right-3 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                   <img src={att.data} alt={att.name} className="w-full h-auto max-h-[400px] object-contain" />
+                   <div className="absolute top-2 right-2 flex gap-2">
                       <button 
                         onClick={() => handleDownloadImage(att.data, att.name)}
-                        className="p-2.5 bg-black/60 backdrop-blur-md text-white rounded-xl hover:bg-black/80 transition-all active:scale-90"
+                        className="p-2.5 bg-black/60 backdrop-blur-md text-white rounded-xl active:scale-90"
                       >
                         <Download size={18} />
                       </button>
@@ -222,7 +220,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, settings,
           ))}
 
           <div 
-            className={`prose prose-sm md:prose-base max-w-none px-5 md:px-7 py-5 md:py-6 ${isAssistant ? (settings.highContrast ? 'prose-invert' : 'text-slate-900 prose-headings:text-[#0c4a6e]') : 'text-white prose-headings:text-white'}`}
+            className={`prose prose-sm md:prose-base max-w-none px-4 md:px-7 py-4 md:py-6 overflow-x-hidden ${isAssistant ? (settings.highContrast ? 'prose-invert' : 'text-slate-900 prose-headings:text-[#0c4a6e]') : 'text-white prose-headings:text-white'}`}
             style={{ 
               fontSize: `${settings.fontSize}px`,
               lineHeight: getLineHeight()
@@ -232,22 +230,22 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, settings,
         </div>
 
         {isAssistant && sources.length > 0 && (
-          <div className={`w-full mt-4 rounded-3xl p-5 shadow-inner border animate-in fade-in duration-500 ${settings.highContrast ? 'bg-slate-900/50 border-slate-800' : 'bg-slate-100/50 border-slate-200'}`} dir="rtl">
-            <div className="flex items-center gap-2 mb-4">
+          <div className="w-full mt-4 rounded-3xl p-4 shadow-inner border bg-slate-100/50 border-slate-200" dir="rtl">
+            <div className="flex items-center gap-2 mb-3">
               <div className="w-2 h-2 rounded-full bg-[#0369a1] animate-pulse"></div>
-              <p className={`text-[12px] md:text-[14px] font-black urdu-text ${settings.highContrast ? 'text-sky-400' : 'text-[#0c4a6e]'}`}>مستند حوالہ جات:</p>
+              <p className="text-[12px] md:text-[14px] font-black urdu-text text-[#0c4a6e]">مستند حوالہ جات:</p>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+            <div className="grid grid-cols-1 gap-2">
               {sources.map((s, idx) => (
                 <a 
                   key={idx} 
                   href={s.uri} 
                   target="_blank" 
                   rel="noopener noreferrer" 
-                  className={`flex items-center justify-between px-4 py-3 rounded-2xl text-[11px] md:text-[13px] border transition-all group ${settings.highContrast ? 'bg-slate-800 border-slate-700 text-sky-300 hover:bg-slate-700' : 'bg-white hover:bg-white hover:shadow-md hover:border-[#0369a1]/30 text-[#0369a1] border-slate-200 shadow-sm'}`}
+                  className="flex items-center justify-between px-4 py-3 rounded-2xl text-[11px] md:text-[13px] bg-white hover:shadow-md text-[#0369a1] border border-slate-200 transition-all"
                 >
                   <span className="truncate flex-1 text-right font-black ml-3">{s.title}</span>
-                  <ExternalLink className="w-3.5 h-3.5 opacity-40 group-hover:opacity-100 shrink-0 transition-opacity" />
+                  <ExternalLink className="w-3.5 h-3.5 opacity-40 shrink-0" />
                 </a>
               ))}
             </div>
@@ -255,31 +253,25 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, settings,
         )}
 
         {isAssistant && suggestions.length > 0 && (
-          <div className="w-full mt-6 space-y-3 animate-in fade-in slide-in-from-bottom-2 duration-700" dir="rtl">
-            <div className="flex items-center gap-2 px-1">
-              <ChevronRight size={16} className="text-[#0369a1]" />
-              <p className="urdu-text font-black text-[#0c4a6e] text-sm">مزید دریافت کریں:</p>
-            </div>
-            <div className="flex flex-col gap-2">
-              {suggestions.map((s, idx) => (
-                <button 
-                  key={idx}
-                  onClick={() => onSuggestionClick?.(s)}
-                  className={`w-full text-right px-5 py-3.5 rounded-2xl border transition-all active:scale-[0.98] urdu-text text-sm font-bold shadow-sm ${settings.highContrast ? 'bg-slate-900 border-slate-700 text-sky-300 hover:bg-slate-800' : 'bg-white border-slate-200 text-[#0369a1] hover:border-[#0369a1] hover:bg-sky-50'}`}
-                >
-                  {s}
-                </button>
-              ))}
-            </div>
+          <div className="w-full mt-4 space-y-2" dir="rtl">
+            {suggestions.map((s, idx) => (
+              <button 
+                key={idx}
+                onClick={() => onSuggestionClick?.(s)}
+                className="w-full text-right px-4 py-3 rounded-2xl border bg-white border-slate-200 text-[#0369a1] hover:border-[#0369a1] active:scale-[0.98] urdu-text text-sm font-bold shadow-sm"
+              >
+                {s}
+              </button>
+            ))}
           </div>
         )}
 
         {isAssistant && message.content && (
-          <div className="flex items-center gap-2 md:gap-3 pt-2.5 px-1 flex-wrap">
+          <div className="flex items-center gap-2 pt-2 flex-wrap">
             <button 
               onClick={handleSpeak} 
               disabled={audioState === 'loading'} 
-              className={`flex items-center gap-2.5 px-5 py-2 rounded-full transition-all text-[11px] md:text-[13px] font-black urdu-text shadow-md active:scale-95 border ${audioState !== 'idle' ? 'bg-[#0369a1] text-white border-[#0369a1]' : (settings.highContrast ? 'bg-slate-800 text-sky-300 border-slate-700 hover:border-sky-500' : 'bg-white text-[#0369a1] border-slate-200 hover:border-[#0369a1] shadow-sm')}`}
+              className={`flex items-center gap-2 px-4 py-2 rounded-full transition-all text-[11px] font-black urdu-text shadow-md border ${audioState !== 'idle' ? 'bg-[#0369a1] text-white border-[#0369a1]' : 'bg-white text-[#0369a1] border-slate-200 shadow-sm'}`}
             >
               {audioState === 'loading' ? <Loader2 className="w-4 h-4 animate-spin" /> : 
                audioState === 'playing' ? <Pause className="w-4 h-4 fill-current" /> : <Volume2 className="w-4 h-4" />}
@@ -288,18 +280,18 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, settings,
 
             <button 
               onClick={handleWhatsAppShare}
-              className="flex items-center gap-2 px-4 py-2 rounded-full bg-[#25D366] text-white shadow-lg active:scale-95 transition-all text-[11px] md:text-[13px] font-black urdu-text"
+              className="flex items-center gap-2 px-4 py-2 rounded-full bg-[#25D366] text-white shadow-lg text-[11px] font-black urdu-text"
             >
               <MessageCircle className="w-4 h-4 fill-current" />
               <span>واٹس ایپ</span>
             </button>
 
-            <div className="flex items-center gap-1.5 bg-white/60 backdrop-blur-md rounded-full p-1.5 border border-slate-100 shadow-sm">
-              <button onClick={handleCopy} className={`p-2.5 rounded-full transition-all active:scale-90 ${settings.highContrast ? 'text-slate-400 hover:text-white' : 'text-slate-400 hover:text-[#0369a1] hover:bg-slate-100'}`} title="کاپی">
-                {copied ? <Check className="w-5 h-5 text-emerald-500" /> : <Copy className="w-5 h-5" />}
+            <div className="flex items-center gap-1 bg-white/60 backdrop-blur-md rounded-full p-1 border border-slate-100">
+              <button onClick={handleCopy} className="p-2 text-slate-400 hover:text-[#0369a1]">
+                {copied ? <Check className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4" />}
               </button>
-              <button onClick={handleShare} className={`p-2.5 rounded-full transition-all active:scale-90 ${settings.highContrast ? 'text-slate-400 hover:text-white' : 'text-slate-400 hover:text-[#0369a1] hover:bg-slate-100'}`} title="شیئر">
-                <Share2 className="w-5 h-5" />
+              <button onClick={handleShare} className="p-2 text-slate-400 hover:text-[#0369a1]">
+                <Share2 className="w-4 h-4" />
               </button>
             </div>
           </div>

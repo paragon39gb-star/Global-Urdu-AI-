@@ -1,8 +1,7 @@
-
 import React, { useState, useRef, useEffect } from 'react';
-import { Sparkles, ArrowUp, Mic, Paperclip, Menu, Newspaper, Loader2, RefreshCcw, Calendar, Radio, AlertCircle, Cpu, Share2, MessageCircle, Image as ImageIcon, Wand2, BookOpen } from 'lucide-react';
+import { Sparkles, ArrowUp, Mic, Paperclip, Menu, Newspaper, Loader2, RefreshCcw, Calendar, Radio, AlertCircle, Cpu, Share2, MessageCircle, Wand2, BookOpen, RotateCcw, Eye } from 'lucide-react';
 import { MessageBubble } from './MessageBubble';
-import { ChatSession, Attachment, UserSettings, Message } from '../types';
+import { ChatSession, Attachment, UserSettings } from '../types';
 import { MOCK_CONTACTS } from '../constants';
 import { chatGRC } from '../services/geminiService';
 
@@ -40,7 +39,10 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [combinedDate, setCombinedDate] = useState('');
   const [isGeneratingImage, setIsGeneratingImage] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
   
+  const isReadOnly = window.location.search.includes('view=shared');
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -49,6 +51,10 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (session?.messages.length && session.messages.length > 0) {
+      setIsSyncing(true);
+      setTimeout(() => setIsSyncing(false), 2000);
+    }
   }, [session?.messages, isGeneratingImage]);
 
   useEffect(() => {
@@ -66,6 +72,7 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
 
   const handleSubmit = async (e?: React.FormEvent) => {
     e?.preventDefault();
+    if (isReadOnly) return;
     setError(null);
     if (!input.trim() && attachments.length === 0) return;
     if (isLoading || isGeneratingImage) return;
@@ -112,30 +119,37 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
   };
 
   const handleShareApp = async () => {
+    const baseUrl = window.location.origin + window.location.pathname;
+    const shareUrl = `${baseUrl}?view=shared`;
+
+    const shareData = {
+      title: 'Urdu AI - لائیو ریسرچ',
+      text: `اردو اے آئی پر میری تازہ ترین تحقیق دیکھیں: ${session?.title || 'علمی مکالمہ'}\n\nیہ ایک لائیو لنک ہے، تمام نئی تبدیلیاں خود بخود سنک ہوں گی۔`,
+      url: shareUrl,
+    };
+
     if (navigator.share) {
       try {
-        await navigator.share({
-          title: 'Urdu AI - اردو اے آئی',
-          text: 'قاری خالد محمود گولڈ میڈلسٹ کا مستند تحقیقی اسسٹنٹ۔ قرآن، حدیث اور علوم اسلامیہ پر تفصیلی تحقیق کے لیے ابھی جوائن کریں۔',
-          url: window.location.origin,
-        });
+        await navigator.share(shareData);
       } catch (err) {}
     } else {
-      navigator.clipboard.writeText(window.location.origin);
-      alert('ایپ کا لنک کاپی کر لیا گیا ہے۔');
+      navigator.clipboard.writeText(shareUrl);
+      alert('لائیو چیٹ لنک کاپی کر لیا گیا ہے۔');
     }
   };
 
   const handleShareChatWhatsApp = () => {
     if (!session || session.messages.length === 0) return;
+    const baseUrl = window.location.origin + window.location.pathname;
+    const shareUrl = `${baseUrl}?view=shared`;
     const chatHistory = session.messages.map(m => `*${m.role === 'user' ? 'سوال' : 'جواب'}*: ${m.content}`).join('\n\n---\n\n');
-    const text = encodeURIComponent(`*Urdu AI Full Research Chat*\n\n${chatHistory}\n\n_Powered by Global Research Center_`);
+    const text = encodeURIComponent(`*Urdu AI Live Research*\n\n${chatHistory}\n\n🔗 *لائیو اپڈیٹس کے لیے لنک:* ${shareUrl}\n\n_Powered by Global Research Center_`);
     window.open(`https://wa.me/?text=${text}`, '_blank');
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
-    if (!files) return;
+    if (!files || isReadOnly) return;
     
     Array.from(files).forEach((file: File) => {
       const reader = new FileReader();
@@ -153,105 +167,103 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
   };
 
   return (
-    <div className={`flex-1 flex flex-col h-full overflow-hidden ${settings.highContrast ? 'bg-slate-950' : 'bg-[#f8fafc]'}`}>
-      <header className={`h-16 flex items-center justify-between px-2 md:px-6 shrink-0 z-30 shadow-lg border-b border-white/10 transition-colors ${contact ? 'bg-[#075e54] text-white' : 'bg-gradient-to-r from-[#0369a1] via-[#075985] to-[#0c4a6e]'}`}>
-        <div className="flex items-center gap-1 md:gap-2 overflow-hidden">
-          <button onClick={onToggleSidebar} className="p-2 hover:bg-white/20 rounded-xl text-white transition-all active:scale-90 shrink-0">
-            <Menu className="w-6 h-6" />
-          </button>
+    <div className={`flex-1 flex flex-col h-full w-full overflow-hidden ${settings.highContrast ? 'bg-slate-950' : 'bg-[#f8fafc]'}`}>
+      <header className={`h-14 flex items-center justify-between px-2 md:px-4 shrink-0 z-30 shadow-md border-b border-white/10 transition-colors ${contact ? 'bg-[#075e54] text-white' : 'bg-gradient-to-r from-[#0369a1] via-[#075985] to-[#0c4a6e]'}`}>
+        <div className="flex items-center gap-1 shrink-0">
+          {!isReadOnly && (
+            <button onClick={onToggleSidebar} className="p-2 hover:bg-white/10 rounded-lg text-white transition-all shrink-0">
+              <Menu className="w-5 h-5" />
+            </button>
+          )}
+          {isReadOnly && (
+            <div className="flex items-center gap-1.5 px-2 py-1 bg-white/10 rounded-lg border border-white/20">
+               <Eye size={14} className="text-white" />
+               <span className="urdu-text text-[9px] font-black text-white">ایپ موڈ</span>
+            </div>
+          )}
         </div>
 
-        <div className="flex items-center gap-1.5 md:gap-2.5 overflow-x-auto no-scrollbar py-1">
-           <button onClick={onStartVoice} className="flex items-center gap-2 px-3 py-2 bg-emerald-500/20 hover:bg-emerald-500/30 rounded-xl border border-emerald-500/20 transition-all active:scale-95 group shadow-sm shrink-0">
-              <Radio className="w-5 h-5 text-emerald-400 animate-pulse" />
-              <span className="urdu-text text-[10px] md:text-xs font-black text-white">لائیو</span>
+        <div className="flex items-center gap-1 overflow-x-auto no-scrollbar py-1">
+           <button onClick={onStartVoice} className="flex items-center gap-1 px-2 py-1.5 bg-emerald-500/20 hover:bg-emerald-500/30 rounded-lg border border-emerald-500/20 shrink-0">
+              <Radio className="w-3.5 h-3.5 text-emerald-400" />
+              <span className="urdu-text text-[9px] font-black text-white">لائیو</span>
            </button>
            
-           <button onClick={onFetchNews} className="flex items-center gap-2 px-3 py-2 bg-white/10 hover:bg-white/20 rounded-xl border border-white/10 transition-all active:scale-95 group shadow-sm shrink-0">
-              <Newspaper className="w-5 h-5 text-white" />
-              <span className="urdu-text text-[10px] md:text-xs font-black text-white">خبریں</span>
+           <button onClick={onFetchNews} className="flex items-center gap-1 px-2 py-1.5 bg-white/10 hover:bg-white/20 rounded-lg border border-white/10 shrink-0">
+              <Newspaper className="w-3.5 h-3.5 text-white" />
+              <span className="urdu-text text-[9px] font-black text-white">خبریں</span>
            </button>
 
-           <button onClick={onFetchAIUpdates} className="flex items-center gap-2 px-3 py-2 bg-sky-500/20 hover:bg-sky-500/30 rounded-xl border border-sky-500/10 transition-all active:scale-95 group shadow-sm shrink-0">
-              <Cpu className="w-5 h-5 text-sky-400" />
-              <span className="urdu-text text-[10px] md:text-xs font-black text-white">AI</span>
+           <button onClick={onFetchAIUpdates} className="flex items-center gap-1 px-2 py-1.5 bg-sky-500/20 hover:bg-sky-500/30 rounded-lg border border-sky-500/10 shrink-0">
+              <Cpu className="w-3.5 h-3.5 text-sky-400" />
+              <span className="urdu-text text-[9px] font-black text-white">AI</span>
            </button>
 
-           <button onClick={handleShareApp} className="p-2 text-white/70 hover:text-white hover:bg-white/10 rounded-xl transition-all border border-transparent hover:border-white/10 shrink-0" title="شیئر ایپ">
-              <Share2 className="w-5.5 h-5.5" />
-           </button>
-
-           <button onClick={onRefreshContext} className="p-2 text-white/70 hover:text-white hover:bg-white/10 rounded-xl transition-all border border-transparent hover:border-white/10 shrink-0" title="ری فریش">
-              <RefreshCcw className="w-5.5 h-5.5" />
-           </button>
+           {!isReadOnly && (
+             <button onClick={onRefreshContext} className="p-2 text-white/70 hover:text-white rounded-lg transition-all shrink-0">
+                <RefreshCcw className="w-4 h-4" />
+             </button>
+           )}
         </div>
       </header>
 
-      <div className="flex-1 overflow-y-auto no-scrollbar scroll-smooth relative">
+      <div className="flex-1 overflow-y-auto no-scrollbar scroll-smooth relative overscroll-contain">
         <div className="w-full max-w-chat mx-auto px-4 flex flex-col min-h-full relative z-10">
           {!session || session.messages.length === 0 ? (
-            <div className="flex-1 flex flex-col items-center justify-center py-12 animate-bubble">
-              <div className="text-center space-y-6 w-full max-w-lg">
-                {/* Updated Logo Design */}
-                <div className="relative inline-flex items-center justify-center w-24 h-24 bg-gradient-to-tr from-[#0ea5e9] to-[#0c4a6e] rounded-[2.5rem] border-2 border-white shadow-2xl mb-4 transform hover:rotate-6 transition-transform duration-500">
-                  <Sparkles size={48} className="text-white fill-sky-200/20" />
-                  <div className="absolute -bottom-1 -right-1 w-8 h-8 bg-emerald-500 rounded-2xl border-4 border-[#f8fafc] flex items-center justify-center">
-                    <BookOpen size={14} className="text-white" />
+            <div className="flex-1 flex flex-col items-center justify-center py-2 animate-bubble">
+              <div className="text-center space-y-2 w-full max-w-lg px-4">
+                
+                {/* Minimal Logo for Zero Scroll */}
+                <div className="relative inline-flex items-center justify-center w-12 h-12 bg-gradient-to-tr from-[#0ea5e9] to-[#0c4a6e] rounded-xl border-2 border-white shadow-md mb-1">
+                  <Sparkles size={24} className="text-white fill-sky-200/20" />
+                  <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-emerald-500 rounded-lg border-2 border-[#f8fafc] flex items-center justify-center shadow-sm">
+                    <BookOpen size={8} className="text-white" />
                   </div>
                 </div>
 
-                <div className="flex flex-col items-center gap-6">
-                  <div className="px-5 py-2 rounded-full bg-white border border-sky-100 shadow-sm flex items-center gap-2">
-                    <Calendar className="w-4 h-4 text-sky-600" />
-                    <span className="urdu-text text-xs font-black text-sky-900">{combinedDate}</span>
+                <div className="flex flex-col items-center gap-2">
+                  <div className="px-3 py-1 rounded-full bg-white border border-sky-100 shadow-sm flex items-center gap-1.5">
+                    <Calendar className="w-3 h-3 text-sky-600" />
+                    <span className="urdu-text text-[9px] font-black text-sky-950">{combinedDate}</span>
                   </div>
 
-                  {/* Introductory Text */}
-                  <div className="space-y-4 px-6">
-                    <h2 className="urdu-text text-3xl font-black text-sky-950">السلام علیکم!</h2>
-                    <p className="urdu-text text-lg md:text-xl font-bold text-sky-800 leading-relaxed">
-                      میں <span className="text-[#0369a1] font-black underline decoration-sky-300 underline-offset-4">اردو اے آئی</span> ہوں، گلوبل ریسرچ سینٹر کا مستند علمی معاون۔ میں قرآن، حدیث اور علومِ اسلامیہ میں علامہ غلام رسول سعیدی صاحب کے تحقیقی اسلوب میں آپ کی رہنمائی کر سکتا ہوں۔
+                  <div className="space-y-1 animate-in fade-in slide-in-from-bottom-2 duration-700">
+                    <h2 className="urdu-text text-lg font-black text-sky-950">السلام علیکم!</h2>
+                    <p className="urdu-text text-xs font-bold text-sky-800">
+                      میں <span className="text-[#0369a1] font-black underline decoration-sky-300 underline-offset-2">اردو اے آئی</span> ہوں، مستند تحقیقی معاون۔
                     </p>
-                    <p className="urdu-text text-sm font-medium text-slate-500">
-                      تحقیق شروع کرنے کے لیے نیچے دیے گئے خانے میں اپنا سوال لکھیں۔
-                    </p>
+                    <div className="p-2.5 bg-white rounded-xl border border-sky-100 shadow-sm">
+                      <p className="urdu-text text-[11px] font-medium text-slate-600 leading-relaxed">
+                        میں قرآن، حدیث اور علومِ اسلامیہ میں علامہ غلام رسول سعیدی کے اسلوب میں آپ کی مکمل رہنمائی کر سکتا ہوں۔
+                      </p>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
           ) : (
-            <div className="space-y-4 pb-28 pt-6">
+            <div className="space-y-4 pb-32 pt-4">
               {session.messages.map((msg) => (
-                <MessageBubble key={msg.id} message={msg} settings={settings} onSuggestionClick={(s) => onSendMessage(s, [])} />
+                <MessageBubble key={msg.id} message={msg} settings={settings} onSuggestionClick={(s) => isReadOnly ? null : onSendMessage(s, [])} />
               ))}
               
-              {!isLoading && !isGeneratingImage && session.messages.length > 0 && (
-                <div className="flex justify-center py-6 animate-in fade-in zoom-in duration-500">
+              {!isLoading && !isGeneratingImage && session.messages.length > 0 && !isReadOnly && (
+                <div className="flex justify-center py-4">
                   <button 
                     onClick={handleShareChatWhatsApp}
-                    className="flex items-center gap-3 px-6 py-3.5 rounded-2xl bg-[#25D366] text-white shadow-xl hover:bg-[#128C7E] active:scale-95 transition-all urdu-text font-black text-sm"
+                    className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#25D366] text-white shadow-md hover:bg-[#128C7E] transition-all urdu-text font-black text-[11px]"
                   >
-                    <MessageCircle className="w-5 h-5 fill-current" />
-                    <span>پوری گفتگو واٹس ایپ پر بھیجیں</span>
+                    <MessageCircle className="w-4 h-4 fill-current" />
+                    <span>واٹس ایپ پر سنک کریں</span>
                   </button>
                 </div>
               )}
 
               {(isLoading || isGeneratingImage) && (
                 <div className="flex justify-start px-2">
-                  <div className="px-4 py-2 rounded-2xl bg-white shadow-xl flex items-center gap-3 border border-sky-100 animate-pulse">
-                    <Loader2 className="w-4 h-4 text-sky-500 animate-spin" />
-                    <span className="urdu-text text-sm font-black text-sky-600">
-                      {isGeneratingImage ? "تصویر بنائی جا رہی ہے..." : "تحقیق جاری ہے..."}
-                    </span>
-                  </div>
-                </div>
-              )}
-              {error && (
-                <div className="flex justify-center p-4">
-                  <div className="bg-red-50 text-red-600 px-5 py-3 rounded-2xl flex items-center gap-3 border border-red-100 urdu-text font-bold text-sm shadow-lg">
-                    <AlertCircle size={18} />
-                    {error}
+                  <div className="px-3 py-1.5 rounded-xl bg-white shadow-md flex items-center gap-2 border border-sky-100 animate-pulse">
+                    <Loader2 className="w-3 h-3 text-sky-500 animate-spin" />
+                    <span className="urdu-text text-[10px] font-black text-sky-600">تحقیق جاری ہے...</span>
                   </div>
                 </div>
               )}
@@ -261,59 +273,50 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
         </div>
       </div>
 
-      <footer className="w-full shrink-0 pt-2 pb-6 px-4 bg-white/60 backdrop-blur-md border-t border-slate-100">
-        <div className="max-w-chat mx-auto w-full">
-          {attachments.length > 0 && (
-            <div className="flex gap-2 mb-2 overflow-x-auto py-2 no-scrollbar">
-              {attachments.map((att, i) => (
-                <div key={i} className="relative group shrink-0">
-                  <div className="w-14 h-14 rounded-lg border border-slate-200 overflow-hidden bg-slate-50">
-                    {att.previewUrl ? <img src={att.previewUrl} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-[10px] text-slate-400 p-1 break-all">{att.name}</div>}
+      {!isReadOnly && (
+        <footer className="w-full shrink-0 bg-white/90 backdrop-blur-md border-t border-slate-100 z-30 pb-safe">
+          <div className="max-w-chat mx-auto w-full px-4 py-2">
+            {attachments.length > 0 && (
+              <div className="flex gap-2 mb-2 overflow-x-auto no-scrollbar">
+                {attachments.map((att, i) => (
+                  <div key={i} className="relative shrink-0">
+                    <div className="w-10 h-10 rounded-lg border bg-slate-50 overflow-hidden">
+                      {att.previewUrl && <img src={att.previewUrl} className="w-full h-full object-cover" />}
+                    </div>
                   </div>
-                  <button onClick={() => setAttachments(prev => prev.filter((_, idx) => idx !== i))} className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-0.5 shadow-md hover:bg-red-600 transition-colors">
-                    <AlertCircle size={10} />
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-          <form onSubmit={handleSubmit} className="relative w-full">
-            <div className={`relative flex items-end gap-2 w-full border rounded-[2rem] p-2 bg-white shadow-2xl transition-all duration-300 ${isImageMode ? 'ring-2 ring-purple-500 border-purple-400' : 'border-slate-200 focus-within:ring-2 focus-within:ring-sky-500/20 focus-within:border-sky-400'}`}>
-              <button type="button" onClick={() => fileInputRef.current?.click()} className="p-3 text-slate-400 hover:text-sky-600 transition-colors"><Paperclip className="w-5 h-5" /></button>
-              <textarea
-                ref={textareaRef}
-                rows={1}
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyDown={handleKeyDown}
-                placeholder={isImageMode ? "تصویر کی تفصیل لکھیں..." : "تحقیق شروع کریں..."}
-                className="flex-1 bg-transparent border-none focus:ring-0 px-2 py-3 resize-none urdu-text text-right font-bold text-sky-900 min-h-[48px] max-h-32"
-                style={{ fontSize: '16px' }}
-                dir="auto"
-              />
-              <div className="flex items-center gap-2 pr-1">
-                <button 
-                  type="button" 
-                  onClick={() => setIsImageMode(!isImageMode)} 
-                  className={`p-3 transition-colors rounded-full ${isImageMode ? 'bg-purple-100 text-purple-600' : 'text-slate-400 hover:text-purple-600'}`}
-                  title="تصویر بنوائیں"
-                >
-                  <Wand2 className="w-5 h-5" />
-                </button>
-                <button type="button" onClick={onStartVoice} className="p-3 text-slate-400 hover:text-emerald-600 transition-colors hidden md:block"><Mic className="w-5 h-5" /></button>
-                <button type="submit" disabled={!input.trim() && attachments.length === 0 || isLoading || isGeneratingImage} className={`w-11 h-11 rounded-full flex items-center justify-center disabled:opacity-50 shadow-lg transition-all active:scale-95 ${isImageMode ? 'bg-purple-600 text-white shadow-purple-600/20' : 'bg-sky-600 text-white shadow-sky-600/20 hover:bg-sky-700'}`}>
-                  <ArrowUp size={24} />
+                ))}
+              </div>
+            )}
+            <form onSubmit={handleSubmit} className="relative w-full">
+              <div className="relative flex items-end gap-1.5 w-full border rounded-2xl p-1 bg-white shadow-lg border-slate-200">
+                <button type="button" onClick={() => fileInputRef.current?.click()} className="p-2 text-slate-400 shrink-0"><Paperclip className="w-4 h-4" /></button>
+                <textarea
+                  ref={textareaRef}
+                  rows={1}
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  placeholder="تحقیق کریں..."
+                  className="flex-1 bg-transparent border-none focus:ring-0 px-1 py-2.5 resize-none urdu-text text-right font-bold text-sky-900 min-h-[40px] max-h-24"
+                  style={{ fontSize: '15px' }}
+                />
+                <button type="submit" disabled={!input.trim() || isLoading} className="w-9 h-9 rounded-xl flex items-center justify-center bg-sky-600 text-white shadow-md active:scale-95 shrink-0">
+                  <ArrowUp size={20} />
                 </button>
               </div>
+              <input type="file" multiple ref={fileInputRef} onChange={handleFileChange} className="hidden" />
+            </form>
+            <div className="flex flex-col items-center mt-2 pb-1">
+              <p className="text-[9px] text-slate-400 font-bold urdu-text">گلوبل ریسرچ سینٹر - قاری خالد محمود گولڈ میڈلسٹ</p>
             </div>
-            <input type="file" multiple ref={fileInputRef} onChange={handleFileChange} className="hidden" />
-          </form>
-          <div className="flex flex-col items-center mt-3 gap-0.5">
-            <span className="font-black text-xl urdu-text text-sky-700 drop-shadow-sm">Urdu AI</span>
-            <p className="text-[10px] text-center text-slate-400 font-bold uppercase tracking-widest urdu-text">گلوبل ریسرچ سینٹر - قاری خالد محمود گولڈ میڈلسٹ</p>
           </div>
+        </footer>
+      )}
+      {isReadOnly && (
+        <div className="w-full bg-sky-950 text-white p-3 text-center urdu-text text-[10px] font-black border-t border-white/10 pb-safe">
+          گلوبل ریسرچ سینٹر - مستند علمی پلیٹ فارم
         </div>
-      </footer>
+      )}
     </div>
   );
 };
