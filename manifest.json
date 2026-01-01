@@ -1,15 +1,15 @@
 
 {
-  "name": "Urdu AI - اردو اے آئی",
+  "name": "Urdu AI - اُردو اے آئی",
   "short_name": "Urdu AI",
   "description": "قاری خالد محمود گولڈ میڈلسٹ کا مستند تحقیقی اسسٹنٹ",
-  "id": "urdu-ai-pwa-v1",
-  "start_url": ".",
+  "id": "urdu-ai-pwa-final",
+  "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#0c4a6e",
   "theme_color": "#0369a1",
   "orientation": "portrait",
-  "scope": "/",
+  "scope": "./",
   "icons": [
     {
       "src": "https://img.icons8.com/fluency/192/sparkling-light.png",
@@ -22,6 +22,14 @@
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
+    }
+  ],
+  "categories": ["education", "reference", "productivity"],
+  "shortcuts": [
+    {
+      "name": "نئی تحقیق",
+      "url": "./",
+      "icons": [{ "src": "https://img.icons8.com/fluency/96/sparkling-light.png", "sizes": "96x96" }]
     }
   ]
 }

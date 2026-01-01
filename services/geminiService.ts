@@ -1,9 +1,9 @@
-import { GoogleGenAI, Chat, Modality, LiveServerMessage, Part, Type } from "@google/genai";
+
+import { GoogleGenAI, Modality, Part, Type } from "@google/genai";
 import { SYSTEM_PROMPT } from "../constants";
 
 class ChatGRCService {
   private getFreshAI() {
-    // Ensuring the API key is always pulled from environment
     return new GoogleGenAI({ apiKey: process.env.API_KEY });
   }
 
@@ -18,31 +18,6 @@ class ChatGRCService {
     
     const dateContext = `موجودہ عیسوی تاریخ: ${dayName}، ${gregDate}`;
     return `${SYSTEM_PROMPT}\n\n[CONTEXT_UPDATE]\n${dateContext}\n[/CONTEXT_UPDATE]`;
-  }
-
-  async generateImage(prompt: string) {
-    const ai = this.getFreshAI();
-    try {
-      const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash-image',
-        contents: {
-          parts: [{ text: `Generate a high-quality, professional image based on this Urdu description: ${prompt}. Style: Cinematic and detailed.` }]
-        },
-        config: {
-          imageConfig: { aspectRatio: "1:1" }
-        }
-      });
-
-      for (const part of response.candidates[0].content.parts) {
-        if (part.inlineData) {
-          return `data:image/png;base64,${part.inlineData.data}`;
-        }
-      }
-      return null;
-    } catch (e) {
-      console.error("Image Gen Error:", e);
-      throw e;
-    }
   }
 
   async generateTitle(firstMessage: string) {
@@ -77,7 +52,7 @@ class ChatGRCService {
     }));
 
     const chat = ai.chats.create({
-      model: model,
+      model: 'gemini-3-flash-preview', // Force Gemini 3 Flash
       history: geminiHistory,
       config: {
         systemInstruction: (customInstructions ? `${systemPrompt}\n\nUSER CUSTOM INSTRUCTIONS:\n${customInstructions}` : systemPrompt),
@@ -88,7 +63,6 @@ class ChatGRCService {
     });
 
     try {
-      // Create parts for the current message
       const parts: Part[] = [{ text: message }];
       attachments.forEach(att => {
         parts.push({
@@ -99,13 +73,16 @@ class ChatGRCService {
         });
       });
 
-      // Simplified call to sendMessageStream to ensure stability
       const result = await chat.sendMessageStream({ message: parts.length === 1 ? parts[0].text : parts });
       
       let fullText = "";
       let allSources: any[] = [];
       
       for await (const chunk of result) {
+        if (chunk.candidates?.[0]?.finishReason === 'SAFETY') {
+          throw new Error('SAFETY_BLOCK');
+        }
+
         const text = chunk.text;
         
         if (chunk.candidates?.[0]?.groundingMetadata?.groundingChunks) {
@@ -127,7 +104,7 @@ class ChatGRCService {
         }
       }
       return fullText;
-    } catch (error) {
+    } catch (error: any) {
       console.error("Chat Error:", error);
       throw error;
     }
@@ -175,65 +152,7 @@ class ChatGRCService {
     }
   }
 
-  async connectLive(options: any) {
-    const ai = this.getFreshAI();
-    const { callbacks, voiceName } = options;
-    
-    const liveSystemInstruction = `آپ "اردو اے آئی" کے لائیو تحقیقی اسسٹنٹ ہیں۔ 
-    آپ کو "قاری خالد محمود گولڈ میڈلسٹ" نے گلوبل ریسرچ سینٹر (GRC) کے تحت تخلیق کیا ہے۔ 
-    آپ کا اسلوب علامہ غلام رسول سعیدی صاحب جیسا علمی اور باوقار ہونا چاہیے۔
-    گفتگو کو مختصر، علمی اور جامع رکھیں۔`;
-
-    return ai.live.connect({
-      model: 'gemini-2.5-flash-native-audio-preview-09-2025',
-      callbacks: {
-        onopen: () => {
-          console.log("Live Connected");
-          callbacks.onOpen?.();
-        },
-        onmessage: async (message: LiveServerMessage) => {
-          const part = message.serverContent?.modelTurn?.parts?.[0];
-          if (part?.inlineData?.data) {
-            callbacks.onAudio(part.inlineData.data);
-          }
-          
-          if (message.serverContent?.outputTranscription) {
-            const text = message.serverContent.outputTranscription.text;
-            callbacks.onTranscription(text, false);
-          }
-          if (message.serverContent?.inputTranscription) {
-            const text = message.serverContent.inputTranscription.text;
-            callbacks.onTranscription(text, true);
-          }
-          
-          if (message.serverContent?.turnComplete) {
-            callbacks.onTurnComplete();
-          }
-          if (message.serverContent?.interrupted) {
-            callbacks.onInterrupted();
-          }
-        },
-        onerror: (e) => {
-          console.error("Live Error:", e);
-          callbacks.onClose();
-        },
-        onclose: () => callbacks.onClose()
-      },
-      config: {
-        responseModalities: [Modality.AUDIO],
-        systemInstruction: liveSystemInstruction,
-        speechConfig: { 
-          voiceConfig: { prebuiltVoiceConfig: { voiceName: voiceName } } 
-        },
-        inputAudioTranscription: {},
-        outputAudioTranscription: {}
-      }
-    });
-  }
-
-  resetChat() {
-    // Local state reset if needed
-  }
+  resetChat() {}
 }
 
 export const chatGRC = new ChatGRCService();
