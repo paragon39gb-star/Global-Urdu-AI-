@@ -183,9 +183,7 @@ class ChatGRCService {
     const liveSystemInstruction = `آپ "اردو اے آئی" کے لائیو تحقیقی اسسٹنٹ ہیں۔ 
     آپ کو "قاری خالد محمود گولڈ میڈلسٹ" نے گلوبل ریسرچ سینٹر (GRC) کے تحت تخلیق کیا ہے۔ 
     آپ کا اسلوب علامہ غلام رسول سعیدی صاحب جیسا علمی اور باوقار ہونا چاہیے۔
-    
-    اہم ہدایت: جیسے ہی رابطہ ہو، آپ نے فوراً یہ جملہ بولنا ہے: "السلام علیکم ورحمۃ اللہ وبرکاتہ! محترم میں اردو اے آئی ہوں، میں آپ کی کیا علمی مدد کر سکتا ہوں؟" 
-    گفتگو کو مختصر اور جامع رکھیں۔`;
+    گفتگو کو مختصر، علمی اور جامع رکھیں۔`;
 
     return ai.live.connect({
       model: 'gemini-2.5-flash-native-audio-preview-09-2025',
@@ -203,10 +201,12 @@ class ChatGRCService {
           
           // Handle Transcription
           if (message.serverContent?.outputTranscription) {
-            callbacks.onTranscription(message.serverContent.outputTranscription.text, false);
+            const text = message.serverContent.outputTranscription.text;
+            callbacks.onTranscription(text, false);
           }
           if (message.serverContent?.inputTranscription) {
-            callbacks.onTranscription(message.serverContent.inputTranscription.text, true);
+            const text = message.serverContent.inputTranscription.text;
+            callbacks.onTranscription(text, true);
           }
           
           // Handle Turn Complete and Interruption

@@ -93,12 +93,10 @@ export const LiveMode: React.FC<LiveModeProps> = ({ onClose, settings }) => {
       const centerX = canvas.width / 2;
       const centerY = canvas.height / 2;
       
-      // Dynamic Glowing Pulse (ChatGPT Style)
       const avg = dataArray.reduce((a, b) => a + b, 0) / bufferLength;
       const baseRadius = 75;
       const dynamicRadius = baseRadius + (avg / 255) * 60;
 
-      // Outer glow
       const gradient = ctx.createRadialGradient(centerX, centerY, baseRadius, centerX, centerY, dynamicRadius + 40);
       gradient.addColorStop(0, isUserSpeaking ? 'rgba(14, 165, 233, 0.4)' : 'rgba(3, 105, 161, 0.2)');
       gradient.addColorStop(1, 'rgba(14, 165, 233, 0)');
@@ -108,7 +106,6 @@ export const LiveMode: React.FC<LiveModeProps> = ({ onClose, settings }) => {
       ctx.fillStyle = gradient;
       ctx.fill();
 
-      // Bars in circle
       for (let i = 0; i < bufferLength; i += 2) {
         const barHeight = (dataArray[i] / 255) * 80;
         const angle = (i * 2 * Math.PI) / bufferLength;
@@ -154,16 +151,7 @@ export const LiveMode: React.FC<LiveModeProps> = ({ onClose, settings }) => {
           onOpen: () => {
             setIsConnecting(false);
             setIsActive(true);
-            
-            // Send a tiny silent buffer to trigger the initial greeting from system instruction
-            const silentPcm = new Int16Array(1600);
-            const base64Silent = encode(new Uint8Array(silentPcm.buffer));
-            
-            sessionPromiseRef.current?.then(session => {
-              session.sendRealtimeInput({ 
-                media: { data: base64Silent, mimeType: 'audio/pcm;rate=16000' } 
-              });
-            });
+            // Auto-greeting has been removed from here. AI will wait for user input.
           },
           onAudio: async (base64) => {
             if (!audioContextRef.current || audioContextRef.current.state === 'closed') return;
@@ -209,7 +197,6 @@ export const LiveMode: React.FC<LiveModeProps> = ({ onClose, settings }) => {
             setTranscription('');
           },
           onInterrupted: () => {
-            // Stop all current audio immediately when user interrupts
             sourcesRef.current.forEach(s => { try { s.stop(); } catch(e) {} });
             sourcesRef.current.clear();
             nextStartTimeRef.current = 0;
@@ -255,10 +242,8 @@ export const LiveMode: React.FC<LiveModeProps> = ({ onClose, settings }) => {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/98 backdrop-blur-3xl p-4">
-      {/* ChatGPT Like Fullscreen Layout */}
       <div className="w-full max-w-2xl h-full flex flex-col relative overflow-hidden animate-in zoom-in-95 duration-500">
         
-        {/* Header */}
         <div className="p-8 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-4">
              <div className="w-12 h-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center shadow-2xl">
@@ -277,7 +262,6 @@ export const LiveMode: React.FC<LiveModeProps> = ({ onClose, settings }) => {
           </button>
         </div>
 
-        {/* Visualizer Area */}
         <div className="flex-1 flex flex-col items-center justify-center gap-12 px-6">
           {isConnecting && !error ? (
             <div className="flex flex-col items-center gap-6 py-12">
@@ -309,7 +293,6 @@ export const LiveMode: React.FC<LiveModeProps> = ({ onClose, settings }) => {
           </div>
         </div>
 
-        {/* Transcription History (Slide up from bottom) */}
         <div className="h-48 overflow-y-auto px-10 py-6 space-y-4 no-scrollbar bg-gradient-to-t from-black/20 to-transparent">
           {history.map((item, idx) => (
             <div key={idx} className={`flex ${item.role === 'user' ? 'justify-start' : 'justify-end'} animate-in slide-in-from-bottom-2`}>
@@ -321,7 +304,6 @@ export const LiveMode: React.FC<LiveModeProps> = ({ onClose, settings }) => {
           <div ref={historyEndRef} className="h-4" />
         </div>
 
-        {/* Footer Info */}
         <div className="p-8 flex flex-col items-center gap-2 shrink-0">
            <div className="flex items-center gap-3 px-4 py-2 bg-white/5 rounded-full border border-white/10">
              <ShieldCheck size={14} className="text-emerald-400" />
