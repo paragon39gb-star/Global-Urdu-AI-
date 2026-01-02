@@ -3,6 +3,9 @@ import { GoogleGenAI, Modality, Part, Type } from "@google/genai";
 import { SYSTEM_PROMPT } from "../constants";
 
 class ChatGRCService {
+  /**
+   * Always create a fresh instance for Vercel environment.
+   */
   private getFreshAI() {
     return new GoogleGenAI({ apiKey: process.env.API_KEY });
   }
@@ -51,14 +54,14 @@ class ChatGRCService {
       parts: [{ text: msg.content }]
     }));
 
+    // Using gemini-3-flash-preview for the latest features on Vercel
     const chat = ai.chats.create({
-      model: 'gemini-3-flash-preview', // Force Gemini 3 Flash
+      model: 'gemini-3-flash-preview',
       history: geminiHistory,
       config: {
         systemInstruction: (customInstructions ? `${systemPrompt}\n\nUSER CUSTOM INSTRUCTIONS:\n${customInstructions}` : systemPrompt),
-        temperature: 0.2,
-        topP: 0.95,
-        tools: [{ googleSearch: {} }]
+        temperature: 0.3,
+        topP: 0.9
       }
     });
 
@@ -76,31 +79,17 @@ class ChatGRCService {
       const result = await chat.sendMessageStream({ message: parts.length === 1 ? parts[0].text : parts });
       
       let fullText = "";
-      let allSources: any[] = [];
       
       for await (const chunk of result) {
         if (chunk.candidates?.[0]?.finishReason === 'SAFETY') {
-          throw new Error('SAFETY_BLOCK');
+          onChunk?.("\n\n(معذرت! اس مواد کو حفاظتی وجوہات کی بنا پر بلاک کر دیا گیا ہے۔)");
+          break;
         }
 
         const text = chunk.text;
-        
-        if (chunk.candidates?.[0]?.groundingMetadata?.groundingChunks) {
-          const chunks = chunk.candidates[0].groundingMetadata.groundingChunks;
-          const normalized = chunks
-            .filter((c: any) => c.web?.uri)
-            .map((c: any) => ({ title: c.web?.title || 'ذریعہ', uri: c.web?.uri }));
-          
-          if (normalized.length > 0) {
-            const sourceMap = new Map();
-            [...allSources, ...normalized].forEach(s => { if(s.uri) sourceMap.set(s.uri, s); });
-            allSources = Array.from(sourceMap.values());
-          }
-        }
-        
         if (text) {
           fullText += text;
-          onChunk?.(fullText, allSources.length > 0 ? allSources : undefined);
+          onChunk?.(fullText);
         }
       }
       return fullText;

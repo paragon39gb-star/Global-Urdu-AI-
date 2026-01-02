@@ -17,8 +17,8 @@ const App: React.FC = () => {
   const [isAppReady, setIsAppReady] = useState(false);
   const [showIntroModal, setShowIntroModal] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
-  const [isAuthorized, setIsAuthorized] = useState(true); // Default to true to remove barriers
   
+  // Using gemini-3-flash-preview as requested for Vercel deployment
   const selectedModel = 'gemini-3-flash-preview';
   const [customInstructions, setCustomInstructions] = useState('');
   const [settings, setSettings] = useState<UserSettings>({
@@ -138,10 +138,10 @@ const App: React.FC = () => {
         currentSession?.messages || [],
         attachments,
         instructions,
-        (text, sources) => {
+        (text) => {
           setSessions(prev => prev.map(s => 
             s.id === currentSessionId 
-              ? { ...s, messages: s.messages.map(m => m.id === assistantMessageId ? { ...m, content: text, sources } : m) } 
+              ? { ...s, messages: s.messages.map(m => m.id === assistantMessageId ? { ...m, content: text } : m) } 
               : s
           ));
         }
@@ -161,7 +161,16 @@ const App: React.FC = () => {
       setSessions(prev => prev.map(s => s.id === currentSessionId ? { ...s, messages: s.messages.map(m => m.id === assistantMessageId ? { ...m, suggestions: newSuggestions } : m) } : s));
       
     } catch (error: any) {
-      setSessions(prev => prev.map(s => s.id === currentSessionId ? { ...s, messages: s.messages.map(m => m.id === assistantMessageId ? { ...m, content: "معذرت! اس وقت سرور پر بوجھ زیادہ ہے۔ براہ کرم تھوڑی دیر بعد دوبارہ کوشش کریں یا اپنا سوال تبدیل کریں۔" } : m) } : s));
+      const errorStr = JSON.stringify(error).toLowerCase();
+      let errorMessage = "معذرت! اس وقت رابطہ ممکن نہیں ہو سکا۔ براہ کرم دوبارہ کوشش کریں۔";
+      
+      if (errorStr.includes("429") || errorStr.includes("quota")) {
+        errorMessage = "معذرت! فری لمٹ ختم ہو چکی ہے۔ براہ کرم کچھ دیر بعد دوبارہ کوشش کریں۔";
+      } else if (errorStr.includes("403")) {
+        errorMessage = "معذرت! سرور تک رسائی میں مسئلہ ہے۔ براہ کرم ایڈمن سے رابطہ کریں۔";
+      }
+
+      setSessions(prev => prev.map(s => s.id === currentSessionId ? { ...s, messages: s.messages.map(m => m.id === assistantMessageId ? { ...m, content: errorMessage } : m) } : s));
     } finally {
       setIsLoading(false);
     }
