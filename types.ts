@@ -21,6 +21,23 @@ export interface Contact {
   description: string;
 }
 
+export interface PresentationStation {
+  id: string | number;
+  title: string;
+  arabic?: string;
+  urdu: string;
+  points: string[];
+  color?: string;
+}
+
+export interface PresentationData {
+  title: string;
+  theme: string;
+  stations: PresentationStation[];
+  conclusion: string;
+  formula: string;
+}
+
 export interface Message {
   id: string;
   role: 'user' | 'assistant';
@@ -29,6 +46,8 @@ export interface Message {
   attachments?: Attachment[];
   sources?: GroundingSource[];
   suggestions?: string[];
+  isError?: boolean;
+  presentation?: PresentationData;
 }
 
 export interface ChatSession {
@@ -56,10 +75,6 @@ export interface UserSettings {
   voiceSpeed: number;
 }
 
-/**
- * Fix: Restoring '?' to aistudio property to resolve "identical modifiers" conflict 
- * with the underlying environment's Window declaration.
- */
 declare global {
   interface AIStudio {
     hasSelectedApiKey: () => Promise<boolean>;

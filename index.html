@@ -47,11 +47,11 @@
         }
 
         body {
-            /* Strictly Sans as the primary "simple" font */
             font-family: var(--font-sans);
             -webkit-tap-highlight-color: transparent;
             touch-action: manipulation;
             -webkit-font-smoothing: antialiased;
+            overflow-x: hidden;
         }
 
         .urdu-font-naskh { font-family: var(--font-naskh); }
@@ -59,10 +59,11 @@
         .urdu-font-sans { font-family: var(--font-sans); }
         
         .urdu-text { 
-            line-height: 1.6; /* Balanced for 12px simple font */
+            line-height: 1.5;
             word-break: break-word; 
             overflow-wrap: break-word;
             font-family: var(--font-sans);
+            white-space: pre-wrap;
         }
         
         .no-scrollbar::-webkit-scrollbar { display: none; }
@@ -74,6 +75,108 @@
 
         .overscroll-none {
             overscroll-behavior: none;
+        }
+
+        /* Ultra Compact prose formatting with better visuals - Enhanced size for readability */
+        .prose {
+            max-width: 100% !important;
+            overflow-wrap: break-word;
+            word-wrap: break-word;
+            word-break: break-word;
+            font-size: 16px !important;
+        }
+        .prose p {
+            margin-top: 0.2em !important;
+            margin-bottom: 0.2em !important;
+            line-height: 1.6 !important;
+        }
+        .prose h1 {
+            margin-top: 0.6em !important;
+            margin-bottom: 0.4em !important;
+            font-weight: 900 !important;
+            color: #0c4a6e !important;
+            font-size: 1.75rem !important;
+            border-bottom: 2px solid #e0f2fe;
+            padding-bottom: 0.2em;
+        }
+        .prose h2, .prose h3 {
+            margin-top: 0.5em !important;
+            margin-bottom: 0.3em !important;
+            font-weight: 800 !important;
+            color: #0369a1 !important;
+        }
+        .prose ul, .prose ol {
+            margin-top: 0 !important;
+            margin-bottom: 0.3em !important;
+            padding-right: 1.5rem !important;
+        }
+        .prose li {
+            margin-top: 0 !important;
+            margin-bottom: 0.2em !important;
+            padding-top: 0 !important;
+            padding-bottom: 0 !important;
+            line-height: 1.6 !important;
+        }
+        .prose li p {
+            margin: 0 !important;
+            display: inline !important;
+        }
+        .prose hr {
+            margin: 1rem 0 !important;
+            border-color: #cbd5e1 !important;
+            border-style: dashed !important;
+        }
+
+        .prose pre, .prose code {
+            white-space: pre-wrap !important;
+            word-break: break-all !important;
+            background-color: #f1f5f9 !important;
+            border-radius: 0.5rem !important;
+        }
+
+        /* Beautiful Colorful Signature Style */
+        .urdu-signature {
+            display: block;
+            background: linear-gradient(to left, #0284c7, #7c3aed, #db2777);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-weight: 900;
+            text-align: center;
+            margin-top: 1.5rem;
+            padding-top: 1rem;
+            border-top: 1px dashed #e2e8f0;
+            font-size: 1.25rem;
+            font-family: var(--font-nastaleeq);
+        }
+
+        /* Presentation Mode Enhancements */
+        .presentation-content h1, .presentation-content h2 {
+            font-family: var(--font-nastaleeq);
+            color: #0c4a6e;
+            border-bottom: 2px solid #e2e8f0;
+            padding-bottom: 0.5rem;
+            margin-bottom: 0.75rem;
+            text-align: center;
+        }
+        
+        .presentation-content h3 {
+            font-family: var(--font-nastaleeq);
+            background: #0c4a6e;
+            color: white;
+            padding: 0.4rem 0.8rem;
+            border-radius: 1rem;
+            margin-top: 1rem;
+            display: inline-block;
+        }
+
+        .presentation-content blockquote {
+            border-right: 4px solid #0c4a6e;
+            border-left: none;
+            padding: 0.5rem 0.75rem;
+            background: #f0f9ff;
+            font-family: var(--font-nastaleeq);
+            border-radius: 0.5rem;
+            margin: 0.75rem 0;
         }
 
         @keyframes bubbleIn {
@@ -94,6 +197,7 @@
     "@google/genai": "https://esm.sh/@google/genai@1.34.0",
     "lucide-react": "https://esm.sh/lucide-react@0.460.0",
     "marked": "https://esm.sh/marked@15.0.0",
+    "html-to-image": "https://esm.sh/html-to-image@1.11.11",
     "@vitejs/plugin-react": "https://esm.sh/@vitejs/plugin-react@^5.1.2",
     "vite": "https://esm.sh/vite@^7.3.0",
     "react-dom/": "https://esm.sh/react-dom@^19.2.3/",

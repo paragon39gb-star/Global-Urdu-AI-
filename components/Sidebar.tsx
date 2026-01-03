@@ -18,6 +18,8 @@ interface SidebarProps {
   setSettings: (settings: UserSettings) => void;
   onLogout: () => void;
   onShowLogin: () => void;
+  onShowIntro: () => void;
+  onShowUsage: () => void;
   onSendFeedback: () => void;
   isAuthorized?: boolean;
 }
@@ -34,6 +36,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
   setSettings,
   onLogout,
   onShowLogin,
+  onShowIntro,
+  onShowUsage,
   onSendFeedback,
   customInstructions,
   setCustomInstructions,
@@ -139,11 +143,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
           <div className="p-4 border-t border-white/10 space-y-3 bg-black/20">
             <div className="grid grid-cols-2 gap-2">
-              <button onClick={() => {}} className="flex items-center justify-center gap-2 p-3 rounded-xl bg-white/5 text-white/60 text-[10px] urdu-text font-black">
+              <button onClick={() => { onShowUsage(); if(window.innerWidth < 1024) setIsOpen(false); }} className="flex items-center justify-center gap-2 p-3 rounded-xl bg-white/5 text-white/60 text-[10px] urdu-text font-black">
                 <HelpCircle size={14} />
                 <span>رہنمائی</span>
               </button>
-              <button onClick={() => {}} className="flex items-center justify-center gap-2 p-3 rounded-xl bg-white/5 text-white/60 text-[10px] urdu-text font-black">
+              <button onClick={() => { onShowIntro(); if(window.innerWidth < 1024) setIsOpen(false); }} className="flex items-center justify-center gap-2 p-3 rounded-xl bg-white/5 text-white/60 text-[10px] urdu-text font-black">
                 <Info size={14} />
                 <span>تعارف</span>
               </button>
