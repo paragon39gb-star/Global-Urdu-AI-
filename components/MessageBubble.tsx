@@ -1,6 +1,6 @@
 
 import React, { useMemo, useState, useRef, useEffect } from 'react';
-import { Sparkles, User, Copy, Check, Share2, Volume2, Pause, Loader2, Award, ExternalLink, MessageCircle, Download } from 'lucide-react';
+import { Sparkles, User, Copy, Check, Share2, Volume2, Pause, Loader2, Download, MessageCircle, Square } from 'lucide-react';
 import { Message, UserSettings, Contact } from '../types';
 import { marked } from 'marked';
 import { chatGRC } from '../services/geminiService';
@@ -26,7 +26,6 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, settings,
   const startTimeRef = useRef<number>(0);
   const offsetRef = useRef<number>(0);
   
-  const sources = message.sources || [];
   const suggestions = message.suggestions || [];
   const attachments = message.attachments || [];
   const isUrdu = /[\u0600-\u06FF]/.test(message.content);
@@ -197,20 +196,6 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, settings,
 
         {isAssistant && (
           <>
-            {sources.length > 0 && (
-              <div className="w-full mt-4 space-y-2 border-r-4 border-[#0c4a6e] pr-4 py-1" dir="rtl">
-                <p className="text-xs font-black urdu-text text-[#0c4a6e]">مستند حوالہ جات:</p>
-                <div className="flex flex-wrap gap-2">
-                  {sources.map((s, idx) => (
-                    <a key={idx} href={s.uri} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-[10px] bg-slate-100 hover:bg-slate-200 text-[#0c4a6e] transition-all">
-                      <span className="font-black urdu-text">{s.title}</span>
-                      <ExternalLink size={10} />
-                    </a>
-                  ))}
-                </div>
-              </div>
-            )}
-
             {suggestions.length > 0 && (
               <div className="w-full mt-4 flex flex-wrap gap-2 justify-end" dir="rtl">
                 {suggestions.map((s, idx) => (
@@ -222,13 +207,37 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, settings,
             )}
 
             <div className="flex items-center gap-2 pt-4">
-              <button onClick={handleSpeak} disabled={audioState === 'loading'} className={`flex items-center gap-2 px-4 py-1.5 rounded-full transition-all text-xs font-black urdu-text border ${audioState !== 'idle' ? 'bg-[#0c4a6e] text-white' : 'bg-slate-100 text-[#0c4a6e] border-transparent'}`}>
-                {audioState === 'loading' ? <Loader2 size={12} className="animate-spin" /> : <Volume2 size={12} />}
-                <span>آواز</span>
+              <div className="flex items-center bg-slate-100 rounded-full p-0.5 border border-slate-200 shadow-sm">
+                <button 
+                  onClick={handleSpeak} 
+                  disabled={audioState === 'loading'} 
+                  className={`flex items-center gap-2 px-4 py-1.5 rounded-full transition-all text-xs font-black urdu-text ${audioState === 'playing' ? 'bg-[#0c4a6e] text-white shadow-inner' : 'bg-white text-[#0c4a6e] border border-slate-100'}`}
+                >
+                  {audioState === 'loading' ? <Loader2 size={12} className="animate-spin" /> : audioState === 'playing' ? <Pause size={12} /> : <Volume2 size={12} />}
+                  <span>{audioState === 'playing' ? 'توقف' : 'سنائیں'}</span>
+                </button>
+                
+                {(audioState === 'playing' || audioState === 'paused') && (
+                  <button 
+                    onClick={stopAudio} 
+                    className="p-1.5 text-red-500 hover:bg-red-50 rounded-full transition-colors mx-1"
+                    title="بند کریں"
+                  >
+                    <Square size={12} fill="currentColor" />
+                  </button>
+                )}
+              </div>
+
+              <button onClick={handleWhatsAppShare} className="flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#25D366] text-white text-xs font-black urdu-text hover:bg-[#128C7E] transition-colors shadow-sm">
+                <MessageCircle size={12} />
+                <span>واٹس ایپ</span>
               </button>
-              <button onClick={handleWhatsAppShare} className="flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#25D366] text-white text-xs font-black urdu-text"><MessageCircle size={12} /><span>واٹس ایپ</span></button>
-              <button onClick={handleCopy} className="p-2 text-slate-400 hover:text-[#0c4a6e] transition-colors">{copied ? <Check size={14} className="text-emerald-500" /> : <Copy size={14} />}</button>
-              <button onClick={handleShare} className="p-2 text-slate-400 hover:text-[#0c4a6e] transition-colors"><Share2 size={14} /></button>
+              <button onClick={handleCopy} className="p-2 text-slate-400 hover:text-[#0c4a6e] transition-colors">
+                {copied ? <Check size={14} className="text-emerald-500" /> : <Copy size={14} />}
+              </button>
+              <button onClick={handleShare} className="p-2 text-slate-400 hover:text-[#0c4a6e] transition-colors">
+                <Share2 size={14} />
+              </button>
             </div>
           </>
         )}

@@ -1,6 +1,6 @@
 
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { ArrowUp, Mic, Loader2, Plus, X, FileText, MicOff, Sparkles, Menu } from 'lucide-react';
+import { ArrowUp, Mic, Loader2, Plus, X, FileText, MicOff, Sparkles, Menu, Key, Home } from 'lucide-react';
 import { MessageBubble } from './MessageBubble';
 import { ChatSession, Attachment, UserSettings } from '../types';
 
@@ -16,6 +16,9 @@ interface ChatAreaProps {
   onRefreshContext: () => void;
   isAuthorized?: boolean;
   onAuthorize?: () => void;
+  isApiError?: boolean;
+  onUpdateKey?: () => void;
+  onGoHome: () => void;
 }
 
 export const ChatArea: React.FC<ChatAreaProps> = ({
@@ -27,6 +30,9 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
   isLoading,
   settings,
   onToggleSidebar,
+  isApiError,
+  onUpdateKey,
+  onGoHome
 }) => {
   const [input, setInput] = useState('');
   const [attachments, setAttachments] = useState<Attachment[]>([]);
@@ -145,15 +151,34 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
           >
             <Menu size={24} />
           </button>
+          <button 
+            onClick={onGoHome}
+            className="p-2 hover:bg-white/10 rounded-xl transition-all hidden md:flex items-center gap-2"
+            title="ہوم پیج"
+          >
+            <Home size={20} />
+            <span className="text-xs urdu-text font-black">ہوم</span>
+          </button>
         </div>
 
-        <div className="flex items-center gap-2 md:gap-4">
-          <button onClick={onFetchIntro} className="text-[11px] md:text-sm font-black urdu-text px-4 py-2 bg-white/10 hover:bg-white/20 rounded-xl transition-all whitespace-nowrap">تعارف</button>
-          <button onClick={onFetchNews} className="text-[11px] md:text-sm font-black urdu-text px-4 py-2 bg-white/10 hover:bg-white/20 rounded-xl transition-all whitespace-nowrap">نیوز اپ ڈیٹ</button>
-          <button onClick={onFetchAIUpdates} className="text-[11px] md:text-sm font-black urdu-text px-4 py-2 bg-white/10 hover:bg-white/20 rounded-xl transition-all whitespace-nowrap">اے آئی خبریں</button>
+        <div className="flex items-center gap-1 md:gap-4 overflow-x-auto no-scrollbar py-2">
+          <button onClick={onGoHome} className="md:hidden p-2 bg-white/10 rounded-xl transition-all shrink-0"><Home size={18} /></button>
+          <button onClick={onFetchIntro} className="text-[10px] md:text-sm font-black urdu-text px-3 md:px-4 py-2 bg-white/10 hover:bg-white/20 rounded-xl transition-all whitespace-nowrap">تعارف</button>
+          <button onClick={onFetchNews} className="text-[10px] md:text-sm font-black urdu-text px-3 md:px-4 py-2 bg-white/10 hover:bg-white/20 rounded-xl transition-all whitespace-nowrap">نیوز اپ ڈیٹ</button>
+          <button onClick={onFetchAIUpdates} className="text-[10px] md:text-sm font-black urdu-text px-3 md:px-4 py-2 bg-white/10 hover:bg-white/20 rounded-xl transition-all whitespace-nowrap">اے آئی خبریں</button>
         </div>
 
-        <div className="w-10 md:w-12"></div>
+        <div className="flex items-center gap-2 shrink-0">
+          {isApiError && (
+            <button 
+              onClick={onUpdateKey}
+              className="p-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors animate-pulse"
+              title="اے پی آئی کی اپ ڈیٹ کریں"
+            >
+              <Key size={18} />
+            </button>
+          )}
+        </div>
       </header>
 
       <div className="flex-1 overflow-y-auto no-scrollbar scroll-smooth relative bg-white">
@@ -171,7 +196,7 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
                 <div className="h-1 md:h-2 w-16 md:w-24 bg-yellow-400 rounded-full mb-1"></div>
                 <span className="urdu-text text-[10px] md:text-base font-black text-slate-400 uppercase tracking-[0.2em]">{urduDate}</span>
               </div>
-              <p className="urdu-text text-lg md:text-3xl text-[#0c4a6e] font-bold leading-relaxed max-w-2xl mx-auto border-y border-slate-100 py-8">
+              <p className="urdu-text text-lg md:text-3xl text-[#0c4a6e] font-bold leading-relaxed max-w-2xl mx-auto border-y border-slate-100 py-8 px-4">
                 اُردو اے آئی آپ کا مستند تحقیقی ہم سفر ہے۔ ہم جدید ٹیکنالوجی کو علمی دیانت اور مستند حوالوں کے ساتھ آپ کی خدمت میں پیش کرتے ہیں۔
               </p>
             </div>
@@ -227,7 +252,7 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
                 </div>
               </div>
           </div>
-          <p className="text-[8px] md:text-[10px] text-center text-slate-400 urdu-text font-black uppercase tracking-[0.3em] opacity-40 mt-3">Urdu AI - GRC Scholarly Engine v18.0</p>
+          <p className="text-[8px] md:text-[10px] text-center text-slate-400 urdu-text font-black uppercase tracking-[0.2em] opacity-40 mt-3">Urdu AI - GRC Scholarly Engine v18.7</p>
         </div>
       </footer>
     </div>

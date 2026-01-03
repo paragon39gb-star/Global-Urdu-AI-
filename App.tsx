@@ -17,8 +17,9 @@ const App: React.FC = () => {
   const [isAppReady, setIsAppReady] = useState(false);
   const [showIntroModal, setShowIntroModal] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
+  const [isApiError, setIsApiError] = useState(false);
   
-  // Using gemini-3-flash-preview as requested for Vercel deployment
+  // Updated model selection to use Gemini 3 Flash Preview for better performance.
   const selectedModel = 'gemini-3-flash-preview';
   const [customInstructions, setCustomInstructions] = useState('');
   const [settings, setSettings] = useState<UserSettings>({
@@ -55,7 +56,31 @@ const App: React.FC = () => {
     setSessions(prev => [newSession, ...prev]);
     setCurrentSessionId(newId);
     chatGRC.resetChat();
+    setIsApiError(false);
   }, [selectedModel]);
+
+  // Handle "Home Page" action: if current is empty, stay. If not, create new.
+  const handleGoHome = useCallback(() => {
+    const activeSession = sessions.find(s => s.id === currentSessionId);
+    if (activeSession && activeSession.messages.length === 0) {
+      // Already on home (empty chat)
+      return;
+    }
+    // Check if there's already an empty chat we can switch to
+    const emptySession = sessions.find(s => s.messages.length === 0);
+    if (emptySession) {
+      setCurrentSessionId(emptySession.id);
+    } else {
+      createNewChat();
+    }
+  }, [sessions, currentSessionId, createNewChat]);
+
+  const handleUpdateKey = async () => {
+    if (window.aistudio?.openSelectKey) {
+      await window.aistudio.openSelectKey();
+      setIsApiError(false);
+    }
+  };
 
   useEffect(() => {
     const initApp = async () => {
@@ -77,7 +102,17 @@ const App: React.FC = () => {
           const parsed = JSON.parse(savedSessions);
           if (Array.isArray(parsed) && parsed.length > 0) {
             setSessions(parsed);
-            setCurrentSessionId(parsed[0].id);
+            const newId = Date.now().toString();
+            const homeSession: ChatSession = {
+              id: newId,
+              title: 'نئی تحقیق',
+              messages: [],
+              createdAt: Date.now(),
+              updatedAt: Date.now(),
+              model: selectedModel
+            };
+            setSessions(prev => [homeSession, ...parsed]);
+            setCurrentSessionId(newId);
           }
         }
       } catch (e) {
@@ -87,7 +122,7 @@ const App: React.FC = () => {
       }
     };
     initApp();
-  }, []);
+  }, [selectedModel]);
 
   useEffect(() => {
     if (!isAppReady) return;
@@ -109,6 +144,7 @@ const App: React.FC = () => {
 
   const handleSendMessage = async (content: string, attachments: Attachment[] = [], isHidden: boolean = false) => {
     if (!currentSessionId || !currentSession) return;
+    setIsApiError(false);
 
     const isFirstMessage = currentSession.messages.length === 0;
     
@@ -138,10 +174,13 @@ const App: React.FC = () => {
         currentSession?.messages || [],
         attachments,
         instructions,
-        (text) => {
+        (text, sources) => {
           setSessions(prev => prev.map(s => 
             s.id === currentSessionId 
-              ? { ...s, messages: s.messages.map(m => m.id === assistantMessageId ? { ...m, content: text } : m) } 
+              ? { 
+                  ...s, 
+                  messages: s.messages.map(m => m.id === assistantMessageId ? { ...m, content: text, sources: sources || m.sources } : m) 
+                } 
               : s
           ));
         }
@@ -162,12 +201,27 @@ const App: React.FC = () => {
       
     } catch (error: any) {
       const errorStr = JSON.stringify(error).toLowerCase();
+      const statusMatch = errorStr.match(/status[:\s]+(\d+)/) || errorStr.match(/(\d{3})/);
+      const statusCode = statusMatch ? parseInt(statusMatch[1]) : null;
+
+      if (statusCode === 403 || statusCode === 401 || statusCode === 429 || errorStr.includes("permission") || errorStr.includes("quota")) {
+        setIsApiError(true);
+      }
+      
       let errorMessage = "معذرت! اس وقت رابطہ ممکن نہیں ہو سکا۔ براہ کرم دوبارہ کوشش کریں۔";
       
-      if (errorStr.includes("429") || errorStr.includes("quota")) {
-        errorMessage = "معذرت! فری لمٹ ختم ہو چکی ہے۔ براہ کرم کچھ دیر بعد دوبارہ کوشش کریں۔";
-      } else if (errorStr.includes("403")) {
-        errorMessage = "معذرت! سرور تک رسائی میں مسئلہ ہے۔ براہ کرم ایڈمن سے رابطہ کریں۔";
+      if (statusCode === 401 || statusCode === 403) {
+        errorMessage = "معذرت! اے پی آئی کی (API Key) درست نہیں ہے یا اس کی رسائی بند کر دی گئی ہے۔ براہ کرم سیٹنگز میں جا کر کی (Key) چیک کریں۔";
+      } else if (statusCode === 429 || errorStr.includes("quota")) {
+        errorMessage = "معذرت! آج کے لیے مختص تحقیقی لمٹ (Limit) ختم ہو چکی ہے۔ براہ کرم کچھ دیر بعد دوبارہ کوشش کریں یا اپنی ذاتی اے پی آئی کی استعمال کریں۔";
+      } else if (statusCode === 400) {
+        errorMessage = "آپ کی درخواست میں کوئی تکنیکی مسئلہ ہے (مثلاً فائل کا سائز زیادہ ہونا)۔ براہ کرم دوبارہ چیک کر کے سوال لکھیں۔";
+      } else if (statusCode && statusCode >= 500) {
+        errorMessage = "گوگل کے سرورز اس وقت بہت زیادہ بوجھ کا شکار ہیں۔ براہ کرم چند سیکنڈز بعد دوبارہ کوشش کریں۔";
+      } else if (errorStr.includes("safety") || errorStr.includes("blocked")) {
+        errorMessage = "معذرت! آپ کے سوال کا مواد ہمارے حفاظتی ضوابط (Safety Policy) کے خلاف ہو سکتا ہے، اس لیے جواب فراہم نہیں کیا جا سکا۔";
+      } else if (errorStr.includes("network") || errorStr.includes("fetch")) {
+        errorMessage = "انٹرنیٹ کنکشن میں خرابی معلوم ہو رہی ہے۔ براہ کرم اپنا نیٹ ورک چیک کر کے دوبارہ کوشش کریں۔";
       }
 
       setSessions(prev => prev.map(s => s.id === currentSessionId ? { ...s, messages: s.messages.map(m => m.id === assistantMessageId ? { ...m, content: errorMessage } : m) } : s));
@@ -227,6 +281,9 @@ const App: React.FC = () => {
         onRefreshContext={handleRefreshContext}
         isAuthorized={true}
         onAuthorize={() => setShowLoginModal(true)}
+        isApiError={isApiError}
+        onUpdateKey={handleUpdateKey}
+        onGoHome={handleGoHome}
       />
       {showIntroModal && <IntroModal settings={settings} onClose={() => setShowIntroModal(false)} />}
       {showLoginModal && (

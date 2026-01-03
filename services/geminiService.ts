@@ -4,9 +4,10 @@ import { SYSTEM_PROMPT } from "../constants";
 
 class ChatGRCService {
   /**
-   * Always create a fresh instance for Vercel environment.
+   * Creates a fresh instance of GoogleGenAI for every request.
+   * This ensures the app always uses the most up-to-date API_KEY from process.env.
    */
-  private getFreshAI() {
+  private getAI() {
     return new GoogleGenAI({ apiKey: process.env.API_KEY });
   }
 
@@ -23,14 +24,13 @@ class ChatGRCService {
     return `${SYSTEM_PROMPT}\n\n[CONTEXT_UPDATE]\n${dateContext}\n[/CONTEXT_UPDATE]`;
   }
 
+  // Use gemini-3-flash-preview for basic text tasks like title generation.
   async generateTitle(firstMessage: string) {
-    const ai = this.getFreshAI();
+    const ai = this.getAI();
     try {
       const response = await ai.models.generateContent({
         model: 'gemini-3-flash-preview',
-        contents: `Analyze this first message of a research chat and generate a very short, comprehensive, and scholarly title in Urdu (max 4-5 words). 
-        Do not use punctuation.
-        Message: ${firstMessage}`,
+        contents: `Analyze this first message and generate a very short scholarly title in Urdu (max 4 words). Message: ${firstMessage}`,
       });
       return response.text?.trim().replace(/[۔،!؟]/g, '') || firstMessage.slice(0, 30);
     } catch (e) {
@@ -38,6 +38,7 @@ class ChatGRCService {
     }
   }
 
+  // Use the provided model parameter and gemini-3-flash-preview for default chat tasks.
   async sendMessageStream(
     message: string, 
     model: string,
@@ -46,7 +47,7 @@ class ChatGRCService {
     customInstructions?: string,
     onChunk?: (text: string, sources?: any[]) => void
   ) {
-    const ai = this.getFreshAI();
+    const ai = this.getAI();
     const systemPrompt = this.getUpdatedSystemPrompt();
     
     const geminiHistory = history.map(msg => ({
@@ -54,14 +55,14 @@ class ChatGRCService {
       parts: [{ text: msg.content }]
     }));
 
-    // Using gemini-3-flash-preview for the latest features on Vercel
     const chat = ai.chats.create({
-      model: 'gemini-3-flash-preview',
+      model: model || 'gemini-3-flash-preview',
       history: geminiHistory,
       config: {
         systemInstruction: (customInstructions ? `${systemPrompt}\n\nUSER CUSTOM INSTRUCTIONS:\n${customInstructions}` : systemPrompt),
         temperature: 0.3,
-        topP: 0.9
+        topP: 0.95,
+        tools: [{ googleSearch: {} }] // Enabling Google Search for real-time news and info
       }
     });
 
@@ -79,6 +80,7 @@ class ChatGRCService {
       const result = await chat.sendMessageStream({ message: parts.length === 1 ? parts[0].text : parts });
       
       let fullText = "";
+      let allSources: any[] = [];
       
       for await (const chunk of result) {
         if (chunk.candidates?.[0]?.finishReason === 'SAFETY') {
@@ -86,10 +88,26 @@ class ChatGRCService {
           break;
         }
 
+        // Handle grounding metadata for search citations
+        const groundingMetadata = chunk.candidates?.[0]?.groundingMetadata;
+        if (groundingMetadata?.groundingChunks) {
+            const chunks = groundingMetadata.groundingChunks;
+            const newSources = chunks
+                .map((c: any) => c.web ? { title: c.web.title, uri: c.web.uri } : null)
+                .filter((s: any) => s !== null);
+            
+            // Avoid duplicate sources
+            newSources.forEach((ns: any) => {
+                if (!allSources.find(as => as.uri === ns.uri)) {
+                    allSources.push(ns);
+                }
+            });
+        }
+
         const text = chunk.text;
         if (text) {
           fullText += text;
-          onChunk?.(fullText);
+          onChunk?.(fullText, allSources.length > 0 ? allSources : undefined);
         }
       }
       return fullText;
@@ -99,15 +117,14 @@ class ChatGRCService {
     }
   }
 
+  // Use gemini-3-flash-preview for suggestion generation.
   async generateSuggestions(history: any[]) {
-    const ai = this.getFreshAI();
+    const ai = this.getAI();
     try {
       const lastMessage = history[history.length - 1]?.content || "";
       const response = await ai.models.generateContent({
         model: 'gemini-3-flash-preview',
-        contents: `Based on the following last message from a conversation about research/Islam/history, suggest 3 extremely short and relevant follow-up questions in Urdu that a user might want to ask. 
-        Return ONLY a JSON array of strings. 
-        Last Message: ${lastMessage}`,
+        contents: `Suggest 3 extremely short relevant follow-up questions in Urdu. Last Message: ${lastMessage}`,
         config: {
           responseMimeType: "application/json",
           responseSchema: {
@@ -122,12 +139,13 @@ class ChatGRCService {
     }
   }
 
+  // Text-to-speech tasks use gemini-2.5-flash-preview-tts.
   async textToSpeech(text: string, voiceName: string) {
-    const ai = this.getFreshAI();
+    const ai = this.getAI();
     try {
       const response = await ai.models.generateContent({
         model: "gemini-2.5-flash-preview-tts",
-        contents: [{ parts: [{ text: `اردو میں شستہ اور باوقار لہجے میں پڑھیں: ${text}` }] }],
+        contents: [{ parts: [{ text: `اردو میں پڑھیں: ${text}` }] }],
         config: {
           responseModalities: [Modality.AUDIO],
           speechConfig: {
