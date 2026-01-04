@@ -18,12 +18,12 @@ const App: React.FC = () => {
   const [showIntroModal, setShowIntroModal] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
   
-  // Changed to Flash model for immediate and lightning-fast responses
-  const selectedModel = 'gemini-3-flash-preview'; 
+  // Set to Gemini 2.5 Flash for maximum reliability and accessibility
+  const selectedModel = 'gemini-2.5-flash'; 
   const [customInstructions, setCustomInstructions] = useState('');
   const [settings, setSettings] = useState<UserSettings>({
-    fontSize: 14, // Set default font size to 14px as requested
-    fontFamily: 'sans',
+    fontSize: 14, 
+    fontFamily: 'sans', // Updated default font to 'sans' (Noto Sans Arabic)
     highContrast: false,
     voiceName: 'Zephyr',
     currentUser: null,
@@ -190,7 +190,7 @@ const App: React.FC = () => {
       setSessions(prev => prev.map(s => s.id === currentSessionId ? { ...s, messages: s.messages.map(m => m.id === assistantMessageId ? { ...m, suggestions: newSuggestions } : m) } : s));
       
     } catch (error: any) {
-      const errorMessage = "معذرت! اس وقت علمی انجن سے رابطہ ممکن نہیں ہو سکا۔ براہ کرم اپنا انٹرنیٹ چیک کریں یا تھوڑی دیر بعد دوبارہ کوشش کریں۔";
+      const errorMessage = error.message || "معذرت! اس وقت علمی انجن سے رابطہ ممکن نہیں ہو سکا۔ براہ کرم دوبارہ کوشش کریں۔";
       setSessions(prev => prev.map(s => s.id === currentSessionId ? { ...s, messages: s.messages.map(m => m.id === assistantMessageId ? { ...m, content: errorMessage, isError: true } : m) } : s));
     } finally {
       setIsLoading(false);
@@ -214,10 +214,17 @@ const App: React.FC = () => {
     );
   }
 
-  const fontClass = settings.fontFamily === 'nastaleeq' ? 'urdu-font-nastaleeq' : settings.fontFamily === 'naskh' ? 'urdu-font-naskh' : 'urdu-font-sans';
+  const getFontClass = () => {
+    switch (settings.fontFamily) {
+      case 'nastaleeq': return 'urdu-font-nastaleeq';
+      case 'noto-nastaliq': return 'urdu-font-noto-nastaliq';
+      case 'naskh': return 'urdu-font-naskh';
+      default: return 'urdu-font-sans';
+    }
+  };
 
   return (
-    <div className={`flex h-screen w-full overflow-hidden ${fontClass}`}>
+    <div className={`flex h-screen w-full overflow-hidden ${getFontClass()}`}>
       <Sidebar 
         sessions={sessions}
         activeId={currentSessionId}
@@ -243,7 +250,7 @@ const App: React.FC = () => {
         onFetchNews={() => handleSendMessage(NEWS_PROMPT, [], true)}
         onFetchAIUpdates={() => handleSendMessage(AI_UPDATES_PROMPT, [], true)}
         onFetchIntro={() => handleSendMessage(INTRO_PROMPT, [], true)}
-        onShowIntroModal={() => setShowIntroModal(true)}
+        onShowIntroModal={() => setShowIntroModal(false)}
         onRetry={handleRetry}
         isLoading={isLoading}
         settings={settings}

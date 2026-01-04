@@ -67,7 +67,7 @@ export interface GroundingSource {
 
 export interface UserSettings {
   fontSize: number;
-  fontFamily: 'naskh' | 'nastaleeq' | 'sans';
+  fontFamily: 'naskh' | 'nastaleeq' | 'sans' | 'noto-nastaliq';
   highContrast: boolean;
   voiceName: 'Kore' | 'Zephyr' | 'Fenrir' | 'Puck';
   currentUser: User | null;

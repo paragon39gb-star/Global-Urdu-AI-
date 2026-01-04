@@ -1,6 +1,6 @@
 
 import React, { useMemo, useState, useRef, useEffect } from 'react';
-import { Sparkles, User, Copy, Check, Share2, Volume2, Pause, Loader2, Download, MessageCircle, Square, RefreshCcw, AlertTriangle, ExternalLink, Library } from 'lucide-react';
+import { Sparkles, User, Copy, Check, Share2, Volume2, Pause, Loader2, Download, MessageCircle, Square, RefreshCcw, AlertTriangle, ExternalLink, Library, ShieldAlert } from 'lucide-react';
 import { Message, UserSettings, Contact } from '../types';
 import { marked } from 'marked';
 import { chatGRC } from '../services/geminiService';
@@ -30,7 +30,6 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, settings,
   
   const suggestions = message.suggestions || [];
   const attachments = message.attachments || [];
-  const sources = message.sources || [];
   const isUrdu = /[\u0600-\u06FF]/.test(message.content);
 
   const presentationData = message.presentation;
@@ -187,7 +186,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, settings,
   return (
     <div className={`w-full flex gap-3 md:gap-4 px-4 md:px-6 py-4 transition-colors ${isAssistant ? 'bg-transparent' : 'flex-row-reverse bg-transparent'}`}>
       <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 shadow-sm border ${isAssistant ? (message.isError ? 'bg-red-500 text-white' : 'bg-[#0c4a6e] text-white border-white/10') : 'bg-white text-[#0c4a6e] border-slate-200'}`}>
-        {isAssistant ? (message.isError ? <AlertTriangle size={18} /> : <Sparkles size={18} />) : <User size={18} />}
+        {isAssistant ? (message.isError ? <ShieldAlert size={18} /> : <Sparkles size={18} />) : <User size={18} />}
       </div>
 
       <div className={`flex flex-col space-y-3 flex-1 min-w-0 ${isAssistant ? 'items-start' : 'items-end'}`}>
@@ -195,7 +194,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, settings,
            <PresentationCard data={presentationData} />
         ) : (
           <div 
-            className={`w-full prose prose-slate max-w-none ${isUrdu ? 'urdu-text text-right' : 'text-left'} ${isAssistant ? (message.isError ? 'text-red-600 bg-red-50 p-4 rounded-2xl border border-red-100' : 'text-slate-800') : 'text-[#0c4a6e] font-bold'}`}
+            className={`w-full prose prose-slate max-w-none ${isUrdu ? 'urdu-text text-right' : 'text-left'} ${isAssistant ? (message.isError ? 'text-red-700 bg-red-50 p-5 rounded-2xl border-2 border-red-200 shadow-sm' : 'text-slate-800') : 'text-[#0c4a6e] font-bold'}`}
             dir={isUrdu ? 'rtl' : 'ltr'}
             style={{ fontSize: `14px`, lineHeight: '1.45' }}
           >
@@ -213,27 +212,11 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, settings,
 
             <div className="break-words overflow-hidden" dangerouslySetInnerHTML={{ __html: htmlContent }} />
 
-            {/* Research Sources / Grounding */}
-            {isAssistant && sources.length > 0 && (
-              <div className="mt-8 pt-4 border-t border-slate-100 space-y-3">
-                 <div className="flex items-center gap-2 text-[#0c4a6e] font-black text-sm mb-2">
-                    <Library size={16} />
-                    <span>تحقیق کے مآخذ:</span>
-                 </div>
-                 <div className="flex flex-col gap-2">
-                    {sources.map((source, idx) => (
-                      <a 
-                        key={idx} 
-                        href={source.uri} 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        className="flex items-center justify-between p-3 bg-slate-50 border border-slate-100 rounded-xl hover:bg-sky-50 transition-all text-xs text-sky-800 font-bold decoration-none no-underline"
-                      >
-                         <span className="truncate flex-1 text-right">{source.title || source.uri}</span>
-                         <ExternalLink size={12} className="shrink-0 ml-3" />
-                      </a>
-                    ))}
-                 </div>
+            {/* Error Indicators */}
+            {isAssistant && message.isError && (
+              <div className="mt-3 flex items-center gap-2 text-red-500 font-black text-xs">
+                <AlertTriangle size={14} />
+                <span>سرور سے رابطہ منقطع ہے</span>
               </div>
             )}
           </div>
@@ -244,10 +227,10 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, settings,
             {message.isError && onRetry && (
                <button 
                  onClick={onRetry}
-                 className="flex items-center gap-2 px-6 py-2 bg-red-600 text-white rounded-xl text-xs font-black urdu-text hover:bg-red-700 transition-all shadow-md active:scale-95 mt-2 self-start"
+                 className="flex items-center gap-2 px-6 py-2 bg-[#0c4a6e] text-white rounded-xl text-xs font-black urdu-text hover:bg-[#075985] transition-all shadow-md active:scale-95 mt-2 self-start"
                >
                  <RefreshCcw size={14} />
-                 <span>پھر سے کوشش کریں</span>
+                 <span>دوبارہ کوشش کریں</span>
                </button>
             )}
 
@@ -263,20 +246,20 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, settings,
 
             {!message.isError && (
               <div className="flex flex-wrap items-center gap-2 pt-4">
-                <div className="flex items-center bg-slate-100/50 rounded-full p-0.5 border border-slate-200 shadow-sm">
+                <div className="flex items-center bg-slate-100/50 rounded-full p-1 border border-slate-200 shadow-sm gap-1">
                   <button 
                     onClick={handleSpeak} 
                     disabled={audioState === 'loading'} 
-                    className={`flex items-center gap-2 px-4 py-1.5 rounded-full transition-all text-[15px] whitespace-nowrap font-black urdu-text ${audioState === 'playing' ? 'bg-[#0c4a6e] text-white shadow-inner' : 'bg-white text-[#0c4a6e] border border-slate-100'}`}
+                    className={`flex items-center gap-2 px-4 py-1.5 rounded-full transition-all text-sm whitespace-nowrap font-black urdu-text ${audioState === 'playing' ? 'bg-[#0c4a6e] text-white shadow-inner' : 'bg-white text-[#0c4a6e] border border-slate-100'}`}
                   >
                     {audioState === 'loading' ? <Loader2 size={14} className="animate-spin" /> : audioState === 'playing' ? <Pause size={14} /> : <Volume2 size={14} />}
-                    <span>{audioState === 'playing' ? 'توقف' : 'سنائیں'}</span>
+                    <span>{audioState === 'playing' ? 'توقف' : 'پلے کریں'}</span>
                   </button>
                   
-                  {(audioState === 'playing' || audioState === 'paused') && (
+                  {audioState !== 'idle' && (
                     <button 
                       onClick={stopAudio} 
-                      className="p-1.5 text-red-500 hover:bg-red-50 rounded-full transition-colors mx-1"
+                      className="flex items-center justify-center p-2 text-red-500 hover:bg-red-50 rounded-full transition-colors border border-red-100 bg-white shadow-sm"
                       title="بند کریں"
                     >
                       <Square size={12} fill="currentColor" />

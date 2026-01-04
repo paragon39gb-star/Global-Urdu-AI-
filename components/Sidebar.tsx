@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Plus, Trash2, X, MessageCircle, Sparkles, Info, LogOut, User as UserIcon, LogIn, History, HelpCircle, ShieldCheck, Lock, Settings } from 'lucide-react';
+import { Plus, Trash2, X, MessageCircle, Sparkles, Info, LogOut, User as UserIcon, LogIn, History, HelpCircle, ShieldCheck, Lock, Settings, Type } from 'lucide-react';
 import { ChatSession, UserSettings } from '../types';
 import { ADMIN_EMAIL } from '../constants';
 
@@ -45,6 +45,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
 }) => {
   const isAdmin = settings.currentUser?.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase();
 
+  const fontOptions: { id: UserSettings['fontFamily']; label: string }[] = [
+    { id: 'noto-nastaliq', label: 'نوٹو نستعلیق' },
+    { id: 'nastaleeq', label: 'جمیل نوری' },
+    { id: 'naskh', label: 'نسخ' },
+    { id: 'sans', label: 'سینز' },
+  ];
+
   return (
     <>
       {isOpen && (
@@ -82,6 +89,25 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <button onClick={() => setIsOpen(false)} className="lg:hidden p-2 text-white">
               <X size={22} />
             </button>
+          </div>
+
+          {/* Font Settings Section */}
+          <div className="p-4 border-b border-white/10 bg-black/10">
+            <div className="flex items-center gap-2 mb-3 px-2">
+              <Type size={12} className="text-sky-300" />
+              <span className="text-[10px] font-black text-sky-200 uppercase tracking-widest urdu-text">فونٹ تبدیل کریں</span>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+               {fontOptions.map(font => (
+                 <button
+                   key={font.id}
+                   onClick={() => setSettings({ ...settings, fontFamily: font.id })}
+                   className={`px-2 py-2 rounded-xl text-[11px] font-bold urdu-text transition-all border ${settings.fontFamily === font.id ? 'bg-white text-[#0c4a6e] border-white shadow-lg' : 'bg-white/5 text-white/60 border-white/10 hover:bg-white/10'}`}
+                 >
+                   {font.label}
+                 </button>
+               ))}
+            </div>
           </div>
 
           <div className="p-4 space-y-2 shrink-0">
